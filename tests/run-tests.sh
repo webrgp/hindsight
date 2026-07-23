@@ -116,6 +116,38 @@ assert "truncated last message stays valid UTF-8" \
 guarded=$(cd "$proj" && echo '{}' | HINDSIGHT_DISTILL=1 "$SCRIPTS/inject.sh")
 assert "inject skips distill's own run" test -z "$guarded"
 
+# --- backfill.sh ---------------------------------------------------------------
+export CLAUDE_PROJECTS_DIR="$TMP/projects"
+pdir="$CLAUDE_PROJECTS_DIR/-tmp-oldproj"
+mkdir -p "$pdir"
+old_sid="01d5e551-0000-4000-8000-000000000000"
+{
+  printf '{"type":"user","cwd":"/tmp/oldproj","timestamp":"2026-06-01T10:00:00Z","message":{"content":"old question"}}\n'
+  printf '{"type":"assistant","timestamp":"2026-06-01T10:01:00Z","message":{"content":[{"type":"text","text":"old answer"}]}}\n'
+  for i in 1 2 3 4 5 6 7 8; do printf '{"type":"user","message":{"content":"filler %s"}}\n' "$i"; done
+} > "$pdir/$old_sid.jsonl"
+printf '{"type":"user","message":{"content":"hi"}}\n' > "$pdir/aaaaaaaa-1111-4000-8000-000000000000.jsonl"  # too small
+printf '{"type":"user","message":{"content":"hi"}}\n' > "$pdir/agent-notes.jsonl"                            # not a session uuid
+touch -t 202606011002 "$pdir"/*.jsonl
+
+BF_VAULT="$TMP/vault3"
+out=$(HINDSIGHT_HOME="$BF_VAULT" "$SCRIPTS/backfill.sh" 0)
+bf_dump="$BF_VAULT/sessions/oldproj__01d5e551.md"
+assert "backfill adds old session" test -f "$bf_dump"
+assert "backfill reports 1 added" sh -c "printf '%s' \"\$1\" | grep -q '1 sessions added'" _ "$out"
+assert "backfill dump undistilled" grep -q '^distilled: false$' "$bf_dump"
+assert "backfill keeps transcript timestamps" grep -q '^started: 2026-06-01T10:00:00Z$' "$bf_dump"
+assert "backfill tags dump" grep -q 'hindsight/backfill' "$bf_dump"
+assert "backfill dump mtime is old (distill-eligible)" \
+  sh -c "find \"\$1\" -mmin +30 | grep -q ." _ "$bf_dump"
+out2=$(HINDSIGHT_HOME="$BF_VAULT" "$SCRIPTS/backfill.sh" 0)
+assert "backfill is idempotent" sh -c "printf '%s' \"\$1\" | grep -q '0 sessions added'" _ "$out2"
+assert "backfill skips small + non-session files" \
+  test "$(ls "$BF_VAULT/sessions" | wc -l | tr -d ' ')" = "1"
+out3=$(HINDSIGHT_HOME="$TMP/vault4" "$SCRIPTS/backfill.sh" 7)
+assert "days filter excludes older sessions" sh -c "printf '%s' \"\$1\" | grep -q '0 sessions added'" _ "$out3"
+unset CLAUDE_PROJECTS_DIR
+
 # --- distill.sh (no-LLM paths only) ------------------------------------------
 # Fresh dump is younger than STALE window -> skip, costs nothing.
 "$SCRIPTS/distill.sh"

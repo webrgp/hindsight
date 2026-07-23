@@ -60,6 +60,7 @@ offers to git-init the vault for sync.
 | `/hindsight:distill` | Run a distill pass now instead of waiting for tonight. |
 | `/hindsight:proposals` | Review pending proposals; approve → skill gets scaffolded. |
 | `/hindsight:setup` | First-time setup, or re-run to change the schedule. |
+| `/hindsight:backfill` | Capture pre-plugin sessions from `~/.claude/projects` transcripts and distill them. |
 
 ## Configuration
 
