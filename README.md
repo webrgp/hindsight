@@ -62,6 +62,7 @@ offers to git-init the vault for sync.
 | `/hindsight:setup` | First-time setup, or re-run to change the schedule. |
 | `/hindsight:backfill` | Capture pre-plugin sessions from `~/.claude/projects` transcripts and distill them. |
 | `/hindsight:dashboard` | Rebuild the HTML dashboard from the vault and open it. Pure shell, no LLM cost. |
+| `/hindsight:reset` | Re-queue sessions for distill, wipe knowledge, or factory-reset the vault. Confirms first. |
 
 ## Configuration
 
