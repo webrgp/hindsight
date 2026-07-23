@@ -13,8 +13,6 @@ knowledge vault, and back out again as context for future sessions. Three stages
 automatic (hooked to Claude Code lifecycle events or a nightly schedule); the fourth is
 a human decision point.
 
-<img src="./resources/flow.png" />
-
 ```
 [Claude Code session]
         │  Stop event

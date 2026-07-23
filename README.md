@@ -4,6 +4,8 @@ A self-improving layer for Claude Code, packaged as a plugin: it learns from you
 sessions, retains knowledge in a vault, and proposes skills/automations from
 recurring patterns.
 
+<img src="./resources/flow.png" />
+
 ```mermaid
 flowchart LR
   S(["Claude Code session"])
