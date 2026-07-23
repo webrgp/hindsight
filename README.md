@@ -73,7 +73,7 @@ All optional — defaults apply.
 | `HINDSIGHT_HOME` | `~/.hindsight` | Vault dir (sessions, knowledge, inbox, logs). |
 | `HINDSIGHT_DISTILL_THRESHOLD` | `1` | Min undistilled sessions before a run does work. |
 | `HINDSIGHT_DISTILL_MODEL` | `sonnet` | Model for the distill pass. |
-| `HINDSIGHT_DISTILL_BUDGET` | `5.00` | Max USD per distill run. `distill.sh --no-budget` removes the cap for one run. |
+| `HINDSIGHT_DISTILL_BUDGET` | `5.00` | Max USD per project's claude pass (sessions are batched by project, one pass each). `distill.sh --no-budget` removes the cap for one run. |
 | `HINDSIGHT_DISTILL_STALE_MIN` | `30` | Skip sessions touched within this many minutes (still active). |
 | `HINDSIGHT_DISTILL_MAX_SESSIONS` | `20` | Max sessions per run; a bigger backlog drains across nights instead of blowing the budget. |
 | `HINDSIGHT_INJECT_MAX_LINES` | `200` | Cap on lines of knowledge injected per session. |

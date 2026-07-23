@@ -199,6 +199,8 @@ assert "checkpointed session gets distilled_at" grep -q '^distilled_at:' "$V5/se
 assert "unfinished session stays undistilled" grep -q '^distilled: false' "$V5/sessions/projB__22222222.md"
 assert "killed run logs partial marking" grep -q 'marking only checkpointed' "$V5/logs/distill.log"
 assert "killed run reports 1 of 2" grep -q 'done: 1 of 2' "$V5/logs/distill.log"
+assert "sessions batched into separate per-project passes" \
+  test "$(grep -c '"project":"proj[AB]"' "$V5/logs/runs.jsonl")" = "2"
 
 # A successful run still marks the whole batch, .done or not.
 cat > "$BIN/claude" <<'EOF'
@@ -212,7 +214,7 @@ assert "success marks remaining session" grep -q '^distilled: true' "$V5/session
 assert "success reports 1 of 1" grep -q 'done: 1 of 1' "$V5/logs/distill.log"
 
 # --- build-dashboard.sh --------------------------------------------------------
-# Reuse V5: two sessions + a runs.jsonl (one failed, one ok run) from the stub tests.
+# Reuse V5: two sessions + a runs.jsonl (3 project-passes: projA+projB killed run, projB-only ok run).
 mkdir -p "$V5/knowledge/global" "$V5/knowledge/projects/projA" "$V5/inbox"
 printf -- '---\ntags: [x]\n---\n- a fact\n' > "$V5/knowledge/projects/projA/deploys.md"
 printf '# projA knowledge\n\n- [[deploys]] — how deploys work\n' > "$V5/knowledge/projects/projA/INDEX.md"
@@ -240,7 +242,7 @@ assert "dashboard DATA is valid JSON" sh -c "printf '%s' \"\$1\" | jq -e . >/dev
 assert "dashboard counts sessions" \
   test "$(printf '%s' "$data" | jq '.sessions.total')" = "2"
 assert "dashboard carries run history" \
-  test "$(printf '%s' "$data" | jq '.runs | length')" = "2"
+  test "$(printf '%s' "$data" | jq '.runs | length')" = "3"
 assert "dashboard run cost preserved" \
   test "$(printf '%s' "$data" | jq '.runs[0].cost')" = "0.1"
 assert "dashboard counts knowledge notes" \
