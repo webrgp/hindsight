@@ -42,3 +42,22 @@ Cross-cutting invariants to preserve when editing:
 
 - `ponytail:` comments mark deliberate shortcuts, naming the ceiling and upgrade path. Keep the style when taking one.
 - Config is env vars with defaults (`HINDSIGHT_*`); the full table lives in README.md — keep it in sync when adding one.
+
+## Open Knowledge Format (OKF)
+
+This project keeps shared knowledge as an OKF bundle in `.okf/`.
+
+- **Before a task**, if `.okf/` exists, read `.okf/index.md` first and follow
+  links into the concepts relevant to the work. Treat broken links as
+  not-yet-written knowledge, not errors.
+- **After a change** that affects a documented asset (service, API, schema,
+  metric, runbook, decision), update the matching concept: refresh its body and
+  `timestamp`, fix cross-links, and append a dated entry to the nearest `log.md`.
+  Create a new concept for any new asset.
+- **Capturing new knowledge** → use the `/okf:okf` skill (modes: produce,
+  maintain, consume).
+- **Before committing** bundle changes → run `/okf:validate .okf --strict` and
+  resolve every error.
+
+Conformance rule to respect: every concept file needs YAML frontmatter with a
+non-empty `type`. Everything else is optional.
