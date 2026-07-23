@@ -6,23 +6,6 @@ recurring patterns.
 
 <img src="./resources/flow.png" />
 
-```mermaid
-flowchart LR
-  S(["Claude Code session"])
-  SD["~/.hindsight/sessions"]
-  K["~/.hindsight/knowledge"]
-  P["inbox/proposals.md"]
-  G["/hindsight:proposals"]
-  SK["skills/"]
-
-  S -->|"capture · Stop hook"| SD
-  SD -->|"distill · nightly"| K
-  SD -->|"distill · nightly"| P
-  K -->|"inject · SessionStart hook"| S
-  P --> G -->|approve| SK
-  SK -.->|available next run| S
-```
-
 Inspired by [recall](https://github.com/maxdmyers/recall) and, upstream of that,
 Andrej Karpathy's [LLM Wiki](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f)
 idea: instead of re-deriving answers from raw sources every time, incrementally
