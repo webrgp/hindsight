@@ -4,54 +4,78 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>hindsight · dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com"></script>
+<script>
+/* Anthropic brand palette — https://github.com/anthropics/skills brand-guidelines */
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        ink: '#141413',    /* dark */
+        paper: '#faf9f5',  /* light */
+        ash: '#b0aea5',    /* mid gray */
+        mist: '#e8e6dc',   /* light gray */
+        clay: '#d97757',   /* orange — primary accent */
+        denim: '#6a9bcc',  /* blue — secondary accent */
+        olive: '#788c5d',  /* green — tertiary accent */
+      },
+      fontFamily: {
+        display: ['Poppins', 'Arial', 'sans-serif'],
+        body: ['Lora', 'Georgia', 'serif'],
+      },
+    },
+  },
+}
+</script>
 </head>
-<body class="bg-zinc-950 text-slate-200 font-sans antialiased leading-normal">
-<div class="fixed inset-0 z-0 pointer-events-none bg-[radial-gradient(900px_600px_at_90%_-10%,theme(colors.violet.400/10%),transparent_60%),radial-gradient(700px_500px_at_-5%_110%,theme(colors.teal.300/6%),transparent_55%)]"></div>
-<div id="tip" class="fixed hidden pointer-events-none z-10 bg-gray-900 border border-slate-700 rounded-md px-[9px] py-[5px] text-xs text-slate-200 font-mono shadow-[0_2px_8px_theme(colors.black/40%)] whitespace-nowrap"></div>
+<body class="bg-paper text-ink font-body antialiased leading-normal">
+<div id="tip" class="fixed hidden pointer-events-none z-10 bg-ink text-paper rounded-md px-[9px] py-[5px] text-xs font-mono shadow-[0_2px_8px_theme(colors.black/20%)] whitespace-nowrap"></div>
 <div class="relative z-[1] max-w-[1180px] mx-auto px-[clamp(18px,4vw,40px)] pt-[clamp(22px,4vw,46px)] pb-20">
 
-  <div class="flex items-end justify-between gap-5 flex-wrap mb-8 pb-[22px] border-b border-gray-800">
-    <div class="font-mono text-[clamp(30px,5vw,44px)] font-bold tracking-[-.04em]">hindsight<span class="text-violet-400">.</span><span class="block font-sans text-[13px] font-normal text-gray-400 tracking-normal mt-1">memory &amp; learning system — live state</span></div>
-    <div class="text-right font-mono text-xs text-gray-500 leading-[1.9]" id="tmeta"></div>
+  <div class="flex items-end justify-between gap-5 flex-wrap mb-8 pb-[22px] border-b border-mist">
+    <div class="font-display text-[clamp(30px,5vw,44px)] font-semibold tracking-[-.02em]">hindsight<span class="text-clay">.</span><span class="block font-body text-[13px] font-normal text-ink/60 tracking-normal mt-1">memory &amp; learning system — live state</span></div>
+    <div class="text-right font-mono text-xs text-ash leading-[1.9]" id="tmeta"></div>
   </div>
 
   <div class="grid grid-cols-2 min-[521px]:grid-cols-3 min-[921px]:grid-cols-6 gap-3 mb-[26px]" id="stats"></div>
 
   <div class="grid grid-cols-1 min-[881px]:grid-cols-[1.25fr_.9fr] gap-[18px]">
     <div>
-      <div class="bg-gradient-to-b from-gray-900 to-zinc-900 border border-gray-800 rounded-[14px] px-[22px] py-5 mb-[18px] overflow-x-auto">
-        <h2 class="text-[13px] font-mono tracking-[.16em] uppercase text-gray-500 flex items-center justify-between mb-3.5">Recent sessions <span class="text-violet-400" id="sess-count"></span></h2>
+      <div class="bg-white border border-mist rounded-[14px] px-[22px] py-5 mb-[18px] overflow-x-auto shadow-sm">
+        <h2 class="text-[13px] font-display tracking-[.16em] uppercase text-ash flex items-center justify-between mb-3.5">Recent sessions <span class="text-clay" id="sess-count"></span></h2>
         <div id="table-sessions"></div>
       </div>
-      <div class="bg-gradient-to-b from-gray-900 to-zinc-900 border border-gray-800 rounded-[14px] px-[22px] py-5 mb-[18px] overflow-x-auto">
-        <h2 class="text-[13px] font-mono tracking-[.16em] uppercase text-gray-500 flex items-center justify-between mb-3.5">Sessions captured — last 30 days</h2>
-        <div id="chart-days" class="[&_text]:fill-gray-500 [&_text]:text-[11px] [&_text]:tabular-nums"></div>
-        <details class="mt-2"><summary class="text-gray-500 text-xs cursor-pointer font-mono">view as table</summary><div id="table-days"></div></details>
+      <div class="bg-white border border-mist rounded-[14px] px-[22px] py-5 mb-[18px] overflow-x-auto shadow-sm">
+        <h2 class="text-[13px] font-display tracking-[.16em] uppercase text-ash flex items-center justify-between mb-3.5">Sessions captured — last 30 days</h2>
+        <div id="chart-days" class="[&_text]:fill-ash [&_text]:text-[11px] [&_text]:tabular-nums"></div>
+        <details class="mt-2"><summary class="text-ash text-xs cursor-pointer font-mono">view as table</summary><div id="table-days"></div></details>
       </div>
-      <div class="bg-gradient-to-b from-gray-900 to-zinc-900 border border-gray-800 rounded-[14px] px-[22px] py-5 mb-[18px] overflow-x-auto">
-        <h2 class="text-[13px] font-mono tracking-[.16em] uppercase text-gray-500 flex items-center justify-between mb-3.5">Recently distilled knowledge <span class="text-violet-400" id="note-count"></span></h2>
+      <div class="bg-white border border-mist rounded-[14px] px-[22px] py-5 mb-[18px] overflow-x-auto shadow-sm">
+        <h2 class="text-[13px] font-display tracking-[.16em] uppercase text-ash flex items-center justify-between mb-3.5">Recently distilled knowledge <span class="text-clay" id="note-count"></span></h2>
         <div id="notes"></div>
       </div>
     </div>
     <div>
-      <div class="bg-gradient-to-b from-gray-900 to-zinc-900 border border-gray-800 rounded-[14px] px-[22px] py-5 mb-[18px] overflow-x-auto">
-        <h2 class="text-[13px] font-mono tracking-[.16em] uppercase text-gray-500 flex items-center justify-between mb-3.5">Inbox · proposals <span class="text-violet-400" id="prop-count"></span></h2>
+      <div class="bg-white border border-mist rounded-[14px] px-[22px] py-5 mb-[18px] overflow-x-auto shadow-sm">
+        <h2 class="text-[13px] font-display tracking-[.16em] uppercase text-ash flex items-center justify-between mb-3.5">Inbox · proposals <span class="text-clay" id="prop-count"></span></h2>
         <div id="proposals"></div>
       </div>
-      <div class="bg-gradient-to-b from-gray-900 to-zinc-900 border border-gray-800 rounded-[14px] px-[22px] py-5 mb-[18px] overflow-x-auto">
-        <h2 class="text-[13px] font-mono tracking-[.16em] uppercase text-gray-500 flex items-center justify-between mb-3.5">Knowledge by area</h2>
+      <div class="bg-white border border-mist rounded-[14px] px-[22px] py-5 mb-[18px] overflow-x-auto shadow-sm">
+        <h2 class="text-[13px] font-display tracking-[.16em] uppercase text-ash flex items-center justify-between mb-3.5">Knowledge by area</h2>
         <div id="areas"></div>
       </div>
-      <div class="bg-gradient-to-b from-gray-900 to-zinc-900 border border-gray-800 rounded-[14px] px-[22px] py-5 mb-[18px] overflow-x-auto">
-        <h2 class="text-[13px] font-mono tracking-[.16em] uppercase text-gray-500 flex items-center justify-between mb-3.5">Distill cost per run</h2>
-        <div id="chart-cost" class="[&_text]:fill-gray-500 [&_text]:text-[11px] [&_text]:tabular-nums"></div>
-        <details class="mt-2"><summary class="text-gray-500 text-xs cursor-pointer font-mono">view as table</summary><div id="table-runs"></div></details>
+      <div class="bg-white border border-mist rounded-[14px] px-[22px] py-5 mb-[18px] overflow-x-auto shadow-sm">
+        <h2 class="text-[13px] font-display tracking-[.16em] uppercase text-ash flex items-center justify-between mb-3.5">Distill cost per run</h2>
+        <div id="chart-cost" class="[&_text]:fill-ash [&_text]:text-[11px] [&_text]:tabular-nums"></div>
+        <details class="mt-2"><summary class="text-ash text-xs cursor-pointer font-mono">view as table</summary><div id="table-runs"></div></details>
       </div>
     </div>
   </div>
 
-  <footer id="foot" class="mt-[34px] text-center font-mono text-[11px] text-gray-500 tracking-[.08em]"></footer>
+  <footer id="foot" class="mt-[34px] text-center font-mono text-[11px] text-ash tracking-[.08em]"></footer>
 </div>
 
 <script>
@@ -69,18 +93,18 @@ const reltime = iso => {
 };
 
 /* shared class strings (Tailwind utilities only) */
-const CELL = 'px-1.5 py-[9px] border-b border-gray-800 align-middle';
-const TH = CELL + ' text-left text-gray-500 font-mono text-[11px] font-medium tracking-[.06em]';
+const CELL = 'px-1.5 py-[9px] border-b border-mist align-middle';
+const TH = CELL + ' text-left text-ash font-mono text-[11px] font-medium tracking-[.06em]';
 const NUM = 'text-right tabular-nums';
-const WHEN = 'text-gray-400 font-mono text-[12.5px] whitespace-nowrap';
+const WHEN = 'text-ink/60 font-mono text-[12.5px] whitespace-nowrap';
 const ROW = '[&:last-child>td]:border-b-0';
-const EMPTY = '<p class="text-gray-500 text-[13px] italic py-2">';
+const EMPTY = '<p class="text-ash text-[13px] italic py-2">';
 
 /* ---- topbar meta: health pill from last run ---- */
 const lastRun = DATA.runs[DATA.runs.length - 1];
-const health = !lastRun ? ['bg-amber-400', 'no runs yet'] : lastRun.ok ? ['bg-green-400', 'healthy'] : ['bg-rose-400', 'last run failed'];
+const health = !lastRun ? ['bg-clay', 'no runs yet'] : lastRun.ok ? ['bg-olive', 'healthy'] : ['bg-red-500', 'last run failed'];
 document.getElementById('tmeta').innerHTML =
-  `<span class="inline-flex items-center gap-[7px] border border-slate-700 rounded-full px-3 py-[5px] text-slate-200"><span class="w-2 h-2 rounded-full ${health[0]}"></span>distill · ${esc(health[1])}</span><br>` +
+  `<span class="inline-flex items-center gap-[7px] border border-ash rounded-full px-3 py-[5px] text-ink"><span class="w-2 h-2 rounded-full ${health[0]}"></span>distill · ${esc(health[1])}</span><br>` +
   `updated ${esc(new Date(DATA.generated_at).toLocaleString())}<br>` +
   `last distill: ${esc(lastRun ? reltime(lastRun.date) : 'never')}`;
 
@@ -96,16 +120,16 @@ const stats = [
   ['proposals pending', DATA.proposals.proposed, DATA.proposals.proposed > 0],
 ];
 document.getElementById('stats').innerHTML = stats.map(([l,v,hl]) =>
-  `<div class="bg-gray-900 border rounded-xl px-4 py-[18px] ${hl?'border-slate-700 ring-1 ring-inset ring-violet-400/[.18]':'border-gray-800'}">` +
-  `<div class="font-mono text-[clamp(26px,3.4vw,36px)] font-bold tracking-[-.03em]${hl?' text-violet-400':''}">${esc(v)}</div>` +
-  `<div class="text-gray-400 text-xs mt-1">${esc(l)}</div></div>`).join('');
+  `<div class="bg-white border rounded-xl px-4 py-[18px] shadow-sm ${hl?'border-ash ring-1 ring-inset ring-clay/25':'border-mist'}">` +
+  `<div class="font-display text-[clamp(26px,3.4vw,36px)] font-semibold tracking-[-.03em]${hl?' text-clay':''}">${esc(v)}</div>` +
+  `<div class="text-ink/60 text-xs mt-1">${esc(l)}</div></div>`).join('');
 
 /* ---- recent sessions ---- */
 document.getElementById('sess-count').textContent = DATA.sessions.total + ' total';
 document.getElementById('table-sessions').innerHTML = DATA.sessions.recent.length ?
   '<table class="w-full border-collapse text-sm">' + DATA.sessions.recent.map(s =>
     `<tr class="${ROW}"><td class="${CELL} font-semibold">${esc(s.project)}</td><td class="${CELL} ${WHEN}">${esc(reltime(s.updated))}</td>` +
-    `<td class="${CELL} text-right whitespace-nowrap"><span class="font-mono text-[11px] rounded-full px-[9px] py-[3px] border ${s.distilled?'text-teal-300 border-teal-300/30':'text-amber-400 border-amber-400/30'}">${s.distilled?'distilled':'queued'}</span></td></tr>`
+    `<td class="${CELL} text-right whitespace-nowrap"><span class="font-mono text-[11px] rounded-full px-[9px] py-[3px] border ${s.distilled?'text-denim border-denim/40':'text-clay border-clay/40'}">${s.distilled?'distilled':'queued'}</span></td></tr>`
   ).join('') + '</table>' : EMPTY + 'no sessions yet</p>';
 
 /* ---- tooltip ---- */
@@ -120,7 +144,7 @@ function hover(el, html) {
 
 /* ---- column chart: single series, ≤24px bars, 4px rounded data-end,
        square baseline, 2px surface gap, hairline grid, clean y ticks ---- */
-function columns(mount, points, valueFmt, tipFmt, integer) {
+function columns(mount, points, valueFmt, tipFmt, integer, barCls) {
   const el = document.getElementById(mount);
   if (!points.length || points.every(p => !p.v)) { el.innerHTML = EMPTY + '(no data yet)</p>'; return; }
   const W = Math.min(940, Math.max(320, el.clientWidth || 940)), H = 160;
@@ -139,15 +163,15 @@ function columns(mount, points, valueFmt, tipFmt, integer) {
   let s = `<svg width="${W}" height="${H}" role="img">`;
   [0.5, 1].forEach(f => {
     const gy = y(top*f);
-    s += `<line x1="${padL}" y1="${gy}" x2="${W-8}" y2="${gy}" class="stroke-gray-800" stroke-width="1"/>`;
+    s += `<line x1="${padL}" y1="${gy}" x2="${W-8}" y2="${gy}" class="stroke-mist" stroke-width="1"/>`;
     s += `<text x="${padL-6}" y="${gy+4}" text-anchor="end">${valueFmt(top*f)}</text>`;
   });
-  s += `<line x1="${padL}" y1="${y(0)}" x2="${W-8}" y2="${y(0)}" class="stroke-slate-700" stroke-width="1"/>`;
+  s += `<line x1="${padL}" y1="${y(0)}" x2="${W-8}" y2="${y(0)}" class="stroke-ash" stroke-width="1"/>`;
   points.forEach((p, i) => {
     const x = padL + i*slot + (slot-bw)/2, ty = y(p.v), base = y(0);
     if (p.v > 0) {
       const r = Math.min(4, bw/2, (base-ty));
-      s += `<path class="fill-violet-400" d="M${x},${base} L${x},${ty+r} Q${x},${ty} ${x+r},${ty} L${x+bw-r},${ty} Q${x+bw},${ty} ${x+bw},${ty+r} L${x+bw},${base} Z"/>`;
+      s += `<path class="${barCls || 'fill-clay'}" d="M${x},${base} L${x},${ty+r} Q${x},${ty} ${x+r},${ty} L${x+bw-r},${ty} Q${x+bw},${ty} ${x+bw},${ty+r} L${x+bw},${base} Z"/>`;
     }
     s += `<rect class="hit" data-i="${i}" x="${padL+i*slot}" y="${padT}" width="${slot}" height="${plotH}" fill="transparent"/>`;
     if (points.length <= 31 && (i % Math.ceil(points.length/6) === 0))
@@ -167,7 +191,7 @@ for (let i = 29; i >= 0; i--) {
   const iso = d.toISOString().slice(0,10);
   days.push({ label: fmtDay(iso), v: byDay[iso] || 0, date: iso });
 }
-columns('chart-days', days, v => v, p => `${fmtDay(p.date)} — ${p.v} session${p.v===1?'':'s'}`, true);
+columns('chart-days', days, v => v, p => `${fmtDay(p.date)} — ${p.v} session${p.v===1?'':'s'}`, true, 'fill-clay');
 document.getElementById('table-days').innerHTML =
   `<table class="w-full border-collapse text-sm"><tr class="${ROW}"><th class="${TH}">Date</th><th class="${TH} ${NUM}">Sessions</th></tr>` +
   days.filter(d => d.v).map(d => `<tr class="${ROW}"><td class="${CELL}">${fmtDay(d.date)}</td><td class="${CELL} ${WHEN} ${NUM}">${d.v}</td></tr>`).join('') +
@@ -178,10 +202,10 @@ document.getElementById('note-count').textContent = totalNotes + ' notes';
 document.getElementById('notes').innerHTML = DATA.knowledge.recent.length ?
   DATA.knowledge.recent.map(n => {
     const days = Math.floor((new Date(DATA.generated_at) - new Date(n.updated)) / 86400000);
-    const isNew = days <= 3 ? '<span class="font-mono text-[10px] text-violet-400 border border-violet-400/40 rounded-full px-[7px] py-px tracking-[.05em]">new</span>' : '';
-    return `<div class="py-[11px] border-b border-gray-800 last:border-b-0"><div class="flex items-center gap-[9px] flex-wrap"><span class="font-mono text-[13.5px] text-teal-300 font-semibold">${esc(n.name)}</span>` +
-      `<span class="font-mono text-[10.5px] text-gray-500 border border-gray-800 rounded-full px-2 py-px">${esc(n.scope)}</span>${isNew}<span class="ml-auto font-mono text-[11.5px] text-gray-500">${esc(reltime(n.updated))}</span></div>` +
-      `<div class="text-gray-400 text-[13px] mt-[3px] max-w-[62ch]">${esc(n.summary || '—')}</div></div>`;
+    const isNew = days <= 3 ? '<span class="font-mono text-[10px] text-clay border border-clay/40 rounded-full px-[7px] py-px tracking-[.05em]">new</span>' : '';
+    return `<div class="py-[11px] border-b border-mist last:border-b-0"><div class="flex items-center gap-[9px] flex-wrap"><span class="font-mono text-[13.5px] text-denim font-semibold">${esc(n.name)}</span>` +
+      `<span class="font-mono text-[10.5px] text-ash border border-mist rounded-full px-2 py-px">${esc(n.scope)}</span>${isNew}<span class="ml-auto font-mono text-[11.5px] text-ash">${esc(reltime(n.updated))}</span></div>` +
+      `<div class="text-ink/60 text-[13px] mt-[3px] max-w-[62ch]">${esc(n.summary || '—')}</div></div>`;
   }).join('') : EMPTY + 'no notes yet — distill will populate as sessions accumulate</p>';
 
 /* ---- proposals: pending first, then implemented ---- */
@@ -191,32 +215,33 @@ items.sort((a,b) => (a.status === 'proposed' ? 0 : 1) - (b.status === 'proposed'
 document.getElementById('proposals').innerHTML = items.length ?
   items.map(p => {
     const done = p.status !== 'proposed';
-    const ccls = p.confidence === 'high' ? 'bg-green-400' : p.confidence === 'med' ? 'bg-amber-400' : 'bg-rose-400';
-    return `<div class="border border-gray-800 rounded-[11px] px-4 py-3.5 mb-[11px] bg-white/[.012] border-l-2 ${done?'border-l-teal-300 opacity-[.72]':'border-l-amber-400'}"><div class="flex items-center justify-between gap-2.5"><span class="font-mono font-semibold text-sm">${esc(p.name)}</span>` +
-      `<span class="font-mono text-[10.5px] rounded-full px-[9px] py-[2px] tracking-[.03em] whitespace-nowrap border ${done?'text-teal-300 border-teal-300/30':'text-amber-400 border-amber-400/[.35]'}">${done?'implemented':'awaiting approval'}</span></div>` +
-      `<div class="text-gray-400 text-[13px] mt-2 mb-3 leading-normal">${esc(p.what)}</div>` +
-      `<div class="flex flex-wrap gap-2"><span class="font-mono text-[11px] text-slate-200 border border-slate-700 rounded-full px-2.5 py-[3px] inline-flex items-center gap-1.5">${esc(p.scope)}</span>` +
-      `<span class="font-mono text-[11px] text-slate-200 border border-slate-700 rounded-full px-2.5 py-[3px] inline-flex items-center gap-1.5"><span class="w-[7px] h-[7px] rounded-full ${ccls}"></span>${esc(p.confidence)} confidence</span>` +
-      `<span class="font-mono text-[11px] text-gray-500 border border-slate-700 rounded-full px-2.5 py-[3px] inline-flex items-center gap-1.5">${esc(p.seen)}</span></div></div>`;
-  }).join('') : '<div class="text-gray-500 text-[13px] italic py-2">inbox empty — no proposals yet</div>';
+    const ccls = p.confidence === 'high' ? 'bg-olive' : p.confidence === 'med' ? 'bg-clay' : 'bg-red-500';
+    return `<div class="border border-mist rounded-[11px] px-4 py-3.5 mb-[11px] bg-paper border-l-2 ${done?'border-l-denim opacity-[.72]':'border-l-clay'}"><div class="flex items-center justify-between gap-2.5"><span class="font-mono font-semibold text-sm">${esc(p.name)}</span>` +
+      `<span class="font-mono text-[10.5px] rounded-full px-[9px] py-[2px] tracking-[.03em] whitespace-nowrap border ${done?'text-denim border-denim/40':'text-clay border-clay/40'}">${done?'implemented':'awaiting approval'}</span></div>` +
+      `<div class="text-ink/60 text-[13px] mt-2 mb-3 leading-normal">${esc(p.what)}</div>` +
+      `<div class="flex flex-wrap gap-2"><span class="font-mono text-[11px] text-ink border border-ash rounded-full px-2.5 py-[3px] inline-flex items-center gap-1.5">${esc(p.scope)}</span>` +
+      `<span class="font-mono text-[11px] text-ink border border-ash rounded-full px-2.5 py-[3px] inline-flex items-center gap-1.5"><span class="w-[7px] h-[7px] rounded-full ${ccls}"></span>${esc(p.confidence)} confidence</span>` +
+      `<span class="font-mono text-[11px] text-ash border border-ash rounded-full px-2.5 py-[3px] inline-flex items-center gap-1.5">${esc(p.seen)}</span></div></div>`;
+  }).join('') : '<div class="text-ash text-[13px] italic py-2">inbox empty — no proposals yet</div>';
 
-/* ---- knowledge by area ---- */
+/* ---- knowledge by area: bars cycle brand accents ---- */
 const areas = [{name:'global', n:DATA.knowledge.global}, ...DATA.knowledge.projects.map(p => ({name:p.project, n:p.notes}))];
 const maxA = Math.max(1, ...areas.map(a => a.n));
-document.getElementById('areas').innerHTML = areas.map(a =>
-  `<div class="flex items-center gap-3 py-[7px]"><span class="font-mono text-[12.5px] w-[120px] text-slate-200 whitespace-nowrap overflow-hidden text-ellipsis">${esc(a.name)}</span>` +
-  `<span class="flex-1 h-1.5 bg-zinc-950 rounded-full overflow-hidden border border-gray-800"><i class="block h-full bg-gradient-to-r from-violet-400 to-teal-300" style="width:${Math.round(a.n*100/maxA)}%"></i></span>` +
-  `<span class="font-mono text-xs text-gray-400 w-6 text-right">${a.n}</span></div>`).join('');
+const CYCLE = ['bg-clay', 'bg-denim', 'bg-olive'];
+document.getElementById('areas').innerHTML = areas.map((a, i) =>
+  `<div class="flex items-center gap-3 py-[7px]"><span class="font-mono text-[12.5px] w-[120px] text-ink whitespace-nowrap overflow-hidden text-ellipsis">${esc(a.name)}</span>` +
+  `<span class="flex-1 h-1.5 bg-mist rounded-full overflow-hidden"><i class="block h-full ${CYCLE[i % 3]}" style="width:${Math.round(a.n*100/maxA)}%"></i></span>` +
+  `<span class="font-mono text-xs text-ink/60 w-6 text-right">${a.n}</span></div>`).join('');
 
 /* ---- cost per run ---- */
 const runs = DATA.runs.slice(-20);
 columns('chart-cost', runs.map(r => ({ label: fmtDay(r.date.slice(0,10)), v: r.cost, run: r })),
-  v => fmtUsd(v), p => `${fmtDay(p.run.date.slice(0,10))} — ${fmtUsd(p.v)}, ${p.run.sessions} session${p.run.sessions===1?'':'s'}, ${p.run.ok ? 'ok' : 'failed'}`);
+  v => fmtUsd(v), p => `${fmtDay(p.run.date.slice(0,10))} — ${fmtUsd(p.v)}, ${p.run.sessions} session${p.run.sessions===1?'':'s'}, ${p.run.ok ? 'ok' : 'failed'}`, false, 'fill-denim');
 document.getElementById('table-runs').innerHTML = runs.length ?
   `<table class="w-full border-collapse text-sm"><tr class="${ROW}"><th class="${TH}">Date</th><th class="${TH} ${NUM}">Sessions</th><th class="${TH} ${NUM}">Cost</th><th class="${TH} ${NUM}">Duration</th><th class="${TH}">Status</th></tr>` +
   runs.slice().reverse().map(r =>
     `<tr class="${ROW}"><td class="${CELL} ${WHEN}">${esc(r.date.slice(0,10))}</td><td class="${CELL} ${WHEN} ${NUM}">${r.sessions}</td><td class="${CELL} ${WHEN} ${NUM}">${fmtUsd(r.cost)}</td><td class="${CELL} ${WHEN} ${NUM}">${Math.round(r.duration_ms/1000)}s</td>` +
-    `<td class="${CELL} ${r.ok?'text-green-400':'text-rose-400'}">${r.ok ? '✓ ok' : '✗ failed'}</td></tr>`).join('') +
+    `<td class="${CELL} ${r.ok?'text-olive':'text-red-500'}">${r.ok ? '✓ ok' : '✗ failed'}</td></tr>`).join('') +
   '</table>' : EMPTY + '(no runs yet)</p>';
 
 document.getElementById('foot').textContent =
