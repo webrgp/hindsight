@@ -8,9 +8,10 @@ timestamp: 2026-07-23
 
 # Trigger
 
-Nightly, on a schedule chosen at setup time. Can also be run on demand
-(`/hindsight:distill`). Skips entirely (no cost) when fewer than
-`HINDSIGHT_DISTILL_THRESHOLD` sessions are undistilled.
+Nightly, on a schedule chosen at setup time. Nightly runs skip entirely (no cost)
+when fewer than `HINDSIGHT_DISTILL_THRESHOLD` sessions are undistilled. On-demand
+runs (`/hindsight:distill`) pass `--force` to bypass that threshold and distill
+whatever is pending; only a truly empty queue skips.
 
 # Data in
 
