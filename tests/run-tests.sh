@@ -213,6 +213,13 @@ assert "successful distill exits zero" test "$rc6" = "0"
 assert "success marks remaining session" grep -q '^distilled: true' "$V5/sessions/projB__22222222.md"
 assert "success reports 1 of 1" grep -q 'done: 1 of 1' "$V5/logs/distill.log"
 
+# --drain on an empty queue exits 3 (the drain loop's stop signal); plain run
+# on the same empty queue still exits 0 (nightly launchd contract unchanged).
+HINDSIGHT_HOME="$V5" "$SCRIPTS/distill.sh" --drain; rc_drain=$?
+assert "drain on empty queue exits 3" test "$rc_drain" = "3"
+HINDSIGHT_HOME="$V5" "$SCRIPTS/distill.sh"; rc_plain=$?
+assert "plain run on empty queue exits 0" test "$rc_plain" = "0"
+
 # --- build-dashboard.sh --------------------------------------------------------
 # Reuse V5: two sessions + a runs.jsonl (3 project-passes: projA+projB killed run, projB-only ok run).
 mkdir -p "$V5/knowledge/global" "$V5/knowledge/projects/projA" "$V5/inbox"

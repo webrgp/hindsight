@@ -22,8 +22,10 @@ history).
 Same shape as [/flows/capture.md](/flows/capture.md) — one dump written per
 transcript — but sourced from existing files instead of a live `Stop` event. Feeds
 straight into [/flows/distill.md](/flows/distill.md) afterward, so a large window can
-cost real money and take several distill runs (each batch still bounded by
-`HINDSIGHT_DISTILL_BUDGET` and `HINDSIGHT_DISTILL_MAX_SESSIONS`).
+cost real money and take several distill runs. The skill offers a `--drain` loop
+that empties the backlog in one go; each batch stays bounded by
+`HINDSIGHT_DISTILL_MAX_SESSIONS`, but drain drops the `HINDSIGHT_DISTILL_BUDGET`
+cap, so the total spend on a wide window is uncapped.
 
 # Data out
 

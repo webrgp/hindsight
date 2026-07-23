@@ -11,7 +11,11 @@ timestamp: 2026-07-23
 Nightly, on a schedule chosen at setup time. Nightly runs skip entirely (no cost)
 when fewer than `HINDSIGHT_DISTILL_THRESHOLD` sessions are undistilled. On-demand
 runs (`/hindsight:distill`) pass `--force` to bypass that threshold and distill
-whatever is pending; only a truly empty queue skips.
+whatever is pending; only a truly empty queue skips. `--drain` (implies `--force`
+plus no budget cap) turns the single pass into a loop: it exits `3` on an empty
+queue so a `while distill.sh --drain; do :; done` wrapper keeps running bounded
+batches until the whole backlog is gone. The stop signal is distill's own
+eligibility filter, so no external recount is needed.
 
 # Data in
 

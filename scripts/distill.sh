@@ -23,11 +23,19 @@ STALE="${HINDSIGHT_DISTILL_STALE_MIN:-30}"
 # Flags for manual runs (launchd passes none):
 #   --force      ignore the undistilled-count THRESHOLD; run whatever is pending.
 #   --no-budget  run the claude pass with no spend cap (manual backfill drains).
+#   --drain      implies --force + --no-budget; on an empty queue exit 3 (not 0)
+#                so a `while distill.sh --drain; do :; done` loop can drain the
+#                whole backlog: exit 0 = did a batch (keep going), 3 = queue
+#                empty (done clean), 1 = failed (stop). Uses distill's own
+#                eligibility filter as the stop signal, so an external recount
+#                (which would omit the STALE-mtime filter and spin) isn't needed.
 FORCE=0
+DRAIN=0
 for arg in "$@"; do
   case "$arg" in
     --force) FORCE=1 ;;
     --no-budget) BUDGET="" ;;
+    --drain) DRAIN=1; FORCE=1; BUDGET="" ;;
   esac
 done
 
@@ -47,6 +55,9 @@ log(){
 if [ -n "$(find "$LOCK" -maxdepth 0 -mmin +360 2>/dev/null)" ]; then
   log "warn: reclaiming stale lock"; rm -rf "$LOCK"
 fi
+# ponytail: locked exits 0, so a --drain loop retries immediately. If launchd
+# grabs the lock mid-drain the loop busy-spins until it frees (rare: manual
+# drain vs nightly cron). Add a backoff/distinct code if collisions show up.
 if ! mkdir "$LOCK" 2>/dev/null; then log "skip: locked"; exit 0; fi
 trap 'rm -rf "$LOCK" "$STAGE" "$SCRATCH"; kill "${TAILPID:-}" 2>/dev/null; pkill -P $$ -x tail 2>/dev/null' EXIT
 trap 'exit 1' HUP INT TERM   # untrapped signals skip the EXIT trap; route them through it
@@ -70,7 +81,7 @@ find "$SESSIONS" -name '*.md' -mmin +"$STALE" 2>/dev/null | sort | while read -r
   grep -q '^distilled: false' "$f" && printf '%s\n' "$f" >> "$TODO"
 done
 COUNT=$(wc -l < "$TODO" | tr -d ' ')
-if [ "$COUNT" -eq 0 ]; then log "skip: 0 undistilled"; exit 0; fi
+if [ "$COUNT" -eq 0 ]; then log "skip: 0 undistilled"; [ "$DRAIN" -eq 1 ] && exit 3; exit 0; fi
 if [ "$FORCE" -ne 1 ] && [ "$COUNT" -lt "$THRESHOLD" ]; then log "skip: $COUNT undistilled (< $THRESHOLD)"; exit 0; fi
 
 # Cap the batch so a huge backlog can't outgrow the per-run budget and wedge

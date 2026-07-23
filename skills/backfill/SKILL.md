@@ -23,12 +23,20 @@ Pull sessions that predate the plugin into the vault, then distill them.
 3. **Ask how to distill** the new backlog:
    - **Nightly drain** — do nothing; the scheduled job processes up to 20 sessions
      per night until done.
-   - **Distill now** — run `"${CLAUDE_PLUGIN_ROOT}/scripts/distill.sh"` in the
-     background (Bash `run_in_background`), repeatedly if the user wants the whole
-     backlog done: each run processes one batch, so loop until the log shows
-     `skip: 0 undistilled` — checking the remaining count between runs with
-     `grep -rl '^distilled: false' "${HINDSIGHT_HOME:-$HOME/.hindsight}/sessions" | wc -l`.
-     Stop looping if a run logs `distill FAILED` and show the log tail instead.
+   - **Distill now** — run the drain loop in the background (Bash
+     `run_in_background`). Each `--drain` pass processes one batch (up to 20
+     sessions) with no spend cap; the loop repeats until the queue is empty:
+     ```bash
+     while "${CLAUDE_PLUGIN_ROOT}/scripts/distill.sh" --drain; do :; done
+     ```
+     Exit codes drive the loop: `0` did a batch (keep going), `3` queue empty
+     (drained clean), `1` a batch failed (loop stops). Because `--drain` uses
+     distill's own eligibility filter as the stop signal, don't recount
+     `distilled: false` yourself — that count omits the active-session filter and
+     would loop forever. On exit `1`, show the `distill FAILED` line and log tail.
+
+     Note: `--drain` runs uncapped (no `--max-budget-usd`), so a large backlog
+     can cost real money. For "all history" this is the total, not per-batch.
 
 4. **Wrap up** with `tail -20` of the distill log and a pointer to
    `/hindsight:status`.
