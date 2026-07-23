@@ -15,7 +15,13 @@ volume.
 
 ## Do this
 
-1. **Read every `.distill-scratch/*.md`.**
+1. **Process `.distill-scratch/*.md` one file at a time.** For each file, in order:
+   extract its knowledge (step 2), refresh any INDEX you touched for it (step 4),
+   then checkpoint it: append the scratch file's basename on its own line to
+   `.distill-scratch/.done` (create the file on first use). The runner uses `.done`
+   to mark sessions distilled if you are cut off mid-run — checkpoint a file ONLY
+   after its knowledge and indexes are fully written. A session that yields nothing
+   durable still gets checkpointed.
 
 2. **Extract durable knowledge only.** Keep: conventions, gotchas, decisions with
    rationale, reusable command sequences, tool/repo specifics, the user's stated
@@ -26,7 +32,7 @@ volume.
      with `[[note-name]]`. Each note: short frontmatter (`tags`, `updated`) + tight
      bullets.
 
-3. **Detect repeated task patterns.** Compare across today's sessions AND against
+3. **Detect repeated task patterns** (after all sessions are processed). Compare across today's sessions AND against
    `inbox/proposals.md` history. When the same task *shape* recurs (≥2 times, across
    sessions or days), append/update an entry in `inbox/proposals.md`:
    ```
@@ -64,7 +70,7 @@ volume.
    into a linked sub-index rather than letting it grow unbounded.
 
 ## Rules
-- Append/merge; never delete a human's note. Don't touch `.distill-scratch/` or
-  `sessions/` files.
+- Append/merge; never delete a human's note. Don't touch `sessions/` files or
+  anything in `.distill-scratch/` except appending to `.distill-scratch/.done`.
 - If a session yielded nothing durable, skip it silently.
 - Stop when done. Don't ask questions — this is unattended.

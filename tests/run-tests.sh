@@ -163,5 +163,94 @@ touch -t 202001010000 "$HINDSIGHT_HOME/.distill.lock"
 assert "stale lock reclaimed" grep -q 'reclaiming stale lock' "$HINDSIGHT_HOME/logs/distill.log"
 assert "reclaimed run completes and releases lock" test ! -d "$HINDSIGHT_HOME/.distill.lock"
 
+# --- distill.sh incremental marking (stubbed claude) --------------------------
+# A budget-killed run must keep the sessions the agent checkpointed to .done.
+V5="$TMP/vault5"; mkdir -p "$V5/sessions" "$V5/logs"
+mkdump() { # mkdump <proj> <sid8>
+  cat > "$V5/sessions/$1__$2.md" <<EOF
+---
+session_id: $2-0000-4000-8000-000000000000
+project: $1
+transcript: $TMP/no-such-transcript.jsonl
+updated: 2026-06-01T10:00:00Z
+distilled: false
+---
+stuff
+EOF
+  touch -t 202606011000 "$V5/sessions/$1__$2.md"
+}
+mkdump projA 11111111
+mkdump projB 22222222
+
+BIN="$TMP/bin"; mkdir -p "$BIN"
+cat > "$BIN/claude" <<'EOF'
+#!/bin/bash
+# fake claude: checkpoint projA only, then die like a budget kill
+basename "$(ls .distill-scratch/projA__*.md | head -1)" > .distill-scratch/.done
+echo '{"total_cost_usd":0.1,"duration_ms":5,"type":"result"}'
+exit 1
+EOF
+chmod +x "$BIN/claude"
+
+HINDSIGHT_HOME="$V5" PATH="$BIN:$PATH" "$SCRIPTS/distill.sh"; rc5=$?
+assert "killed distill exits nonzero" test "$rc5" = "1"
+assert "checkpointed session marked distilled" grep -q '^distilled: true' "$V5/sessions/projA__11111111.md"
+assert "checkpointed session gets distilled_at" grep -q '^distilled_at:' "$V5/sessions/projA__11111111.md"
+assert "unfinished session stays undistilled" grep -q '^distilled: false' "$V5/sessions/projB__22222222.md"
+assert "killed run logs partial marking" grep -q 'marking only checkpointed' "$V5/logs/distill.log"
+assert "killed run reports 1 of 2" grep -q 'done: 1 of 2' "$V5/logs/distill.log"
+
+# A successful run still marks the whole batch, .done or not.
+cat > "$BIN/claude" <<'EOF'
+#!/bin/bash
+echo '{"total_cost_usd":0.1,"duration_ms":5,"type":"result"}'
+exit 0
+EOF
+HINDSIGHT_HOME="$V5" PATH="$BIN:$PATH" "$SCRIPTS/distill.sh"; rc6=$?
+assert "successful distill exits zero" test "$rc6" = "0"
+assert "success marks remaining session" grep -q '^distilled: true' "$V5/sessions/projB__22222222.md"
+assert "success reports 1 of 1" grep -q 'done: 1 of 1' "$V5/logs/distill.log"
+
+# --- build-dashboard.sh --------------------------------------------------------
+# Reuse V5: two sessions + a runs.jsonl (one failed, one ok run) from the stub tests.
+mkdir -p "$V5/knowledge/global" "$V5/knowledge/projects/projA" "$V5/inbox"
+printf -- '---\ntags: [x]\n---\n- a fact\n' > "$V5/knowledge/projects/projA/deploys.md"
+printf '# projA knowledge\n\n- [[deploys]] — how deploys work\n' > "$V5/knowledge/projects/projA/INDEX.md"
+cat > "$V5/inbox/proposals.md" <<'EOF'
+# hindsight proposals
+
+## release-notes-ritual
+- seen: 3 times — projects: projA
+- what: draft release notes from merged PRs
+- proposed skill: release-notes — drafts notes from git log
+- scope: project:projA
+- confidence: med
+- status: proposed
+
+## old-idea
+- seen: 2 times — projects: projB
+- status: rejected
+EOF
+
+HINDSIGHT_HOME="$V5" "$SCRIPTS/build-dashboard.sh" >/dev/null
+dash="$V5/dashboard.html"
+assert "dashboard html written" test -f "$dash"
+data=$(awk '/^const DATA =$/{f=1;next} f && /^;$/{exit} f' "$dash")
+assert "dashboard DATA is valid JSON" sh -c "printf '%s' \"\$1\" | jq -e . >/dev/null" _ "$data"
+assert "dashboard counts sessions" \
+  test "$(printf '%s' "$data" | jq '.sessions.total')" = "2"
+assert "dashboard carries run history" \
+  test "$(printf '%s' "$data" | jq '.runs | length')" = "2"
+assert "dashboard run cost preserved" \
+  test "$(printf '%s' "$data" | jq '.runs[0].cost')" = "0.1"
+assert "dashboard counts knowledge notes" \
+  test "$(printf '%s' "$data" | jq '.knowledge.projects[0].notes')" = "1"
+assert "dashboard lists pending proposal" \
+  test "$(printf '%s' "$data" | jq -r '.proposals.pending[0].name')" = "release-notes-ritual"
+assert "dashboard excludes rejected from pending" \
+  test "$(printf '%s' "$data" | jq '.proposals.pending | length')" = "1"
+assert "dashboard counts rejected" \
+  test "$(printf '%s' "$data" | jq '.proposals.rejected')" = "1"
+
 echo
 [ "$fail" -eq 0 ] && echo "all tests passed" || { echo "TESTS FAILED"; exit 1; }
