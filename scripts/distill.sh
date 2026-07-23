@@ -20,9 +20,15 @@ STALE="${HINDSIGHT_DISTILL_STALE_MIN:-30}"
 mkdir -p "$HINDSIGHT_HOME/logs" "$SESSIONS"
 log(){ printf '%s %s\n' "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" "$*" >> "$LOG"; }
 
-# Single-run lock (mkdir is atomic).
+# Single-run lock (mkdir is atomic). A lock older than 6h means a run died
+# hard (SIGKILL, power loss) and the EXIT trap never fired — reclaim it so one
+# crash can't disable distill forever.
+if [ -n "$(find "$LOCK" -maxdepth 0 -mmin +360 2>/dev/null)" ]; then
+  log "warn: reclaiming stale lock"; rm -rf "$LOCK"
+fi
 if ! mkdir "$LOCK" 2>/dev/null; then log "skip: locked"; exit 0; fi
 trap 'rm -rf "$LOCK" "$SCRATCH"' EXIT
+trap 'exit 1' HUP INT TERM   # untrapped signals skip the EXIT trap; route them through it
 
 export HINDSIGHT_DISTILL=1   # stops the capture hook logging our own claude run
 
@@ -44,13 +50,27 @@ find "$SESSIONS" -name '*.md' -mmin +"$STALE" 2>/dev/null | sort | while read -r
 done
 COUNT=$(wc -l < "$TODO" | tr -d ' ')
 if [ "$COUNT" -lt "$THRESHOLD" ]; then log "skip: $COUNT undistilled (< $THRESHOLD)"; exit 0; fi
+
+# Cap the batch so a huge backlog can't outgrow the per-run budget and wedge
+# every subsequent night. The remainder drains on following runs.
+MAXSESS="${HINDSIGHT_DISTILL_MAX_SESSIONS:-20}"
+if [ "$COUNT" -gt "$MAXSESS" ]; then
+  head -n "$MAXSESS" "$TODO" > "$TODO.cap" && mv "$TODO.cap" "$TODO"
+  log "cap: processing $MAXSESS of $COUNT; rest deferred to next run"
+  COUNT=$MAXSESS
+fi
 log "start: $COUNT undistilled sessions"
 
 # Thin each session's transcript into scratch (fallback: the dump itself).
+# .snap records each dump's updated: stamp so we can detect dumps rewritten
+# by the capture hook while the (multi-minute) claude pass runs.
+SNAP="$SCRATCH/.snap"
+: > "$SNAP"
 while read -r f; do
   proj=$(grep -m1 '^project:' "$f" | sed 's/^project: //')
   sid=$(grep -m1 '^session_id:' "$f" | sed 's/^session_id: //')
   tx=$(grep -m1 '^transcript:' "$f" | sed 's/^transcript: //')
+  upd=$(grep -m1 '^updated:' "$f" | sed 's/^updated: //')
   short=$(printf '%s' "$sid" | head -c 8)
   out="$SCRATCH/${proj}__${short}.md"
   {
@@ -59,6 +79,7 @@ while read -r f; do
     echo
     if [ -f "$tx" ]; then "$HERE/thin-transcript.sh" "$tx"; else cat "$f"; fi
   } > "$out"
+  printf '%s\t%s\n' "$f" "$upd" >> "$SNAP"
 done < "$TODO"
 
 # Run the distill agent headless. Restrict tools; auto-accept edits; cap spend.
@@ -76,13 +97,17 @@ else
   log "distill FAILED (rc=$?); leaving sessions undistilled"; exit 1
 fi
 
-# Mark processed sessions distilled (only after success).
+# Mark processed sessions distilled (only after success), skipping any dump the
+# capture hook rewrote mid-run — its new turns weren't in what we distilled, so
+# leave it undistilled and let the next run pick it up whole.
 # perl, not sed: byte-safe against emoji/UTF-8 in dumps (BSD sed chokes).
 NOW=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
-while read -r f; do
+while IFS=$'\t' read -r f upd; do
+  cur=$(grep -m1 '^updated:' "$f" | sed 's/^updated: //')
+  if [ "$cur" != "$upd" ]; then log "defer: rewritten during run: $f"; continue; fi
   perl -i -pe 's/^distilled: false/distilled: true/' "$f"
   grep -q '^distilled_at:' "$f" || perl -i -pe "s/^(distilled: true)\$/\$1\ndistilled_at: $NOW/" "$f"
-done < "$TODO"
+done < "$SNAP"
 
 # Drop scratch before committing so it never lands in the vault repo.
 rm -rf "$SCRATCH"

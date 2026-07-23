@@ -6,7 +6,7 @@ volume.
 ## Inputs (your current working directory is the vault root — use relative paths only)
 - `.distill-scratch/*.md` — thinned narratives of the sessions to process. Each file's
   header gives its `project` and `session_id`. These are your source material.
-  (Ignore `.distill-scratch/.todo` — runner bookkeeping.)
+  (Ignore dotfiles like `.distill-scratch/.todo` and `.snap` — runner bookkeeping.)
 - `knowledge/` — existing knowledge notes (read before writing; update, don't dupe).
 - `knowledge/global/INDEX.md` — global index (auto-injected into every session).
 - `knowledge/projects/<project>/INDEX.md` — per-project index (auto-injected when

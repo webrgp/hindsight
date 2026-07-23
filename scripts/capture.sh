@@ -22,8 +22,10 @@ session_id=$(printf '%s' "$payload" | jq -r '.session_id // empty' 2>/dev/null)
 cwd=$(printf '%s' "$payload" | jq -r '.cwd // empty' 2>/dev/null)
 [ -n "$cwd" ] || cwd="$PWD"
 transcript=$(printf '%s' "$payload" | jq -r '.transcript_path // empty' 2>/dev/null)
+# perl, not head -c: character-safe truncation (head -c can split a multibyte
+# UTF-8 char and write an invalid byte sequence into the dump).
 last_msg=$(printf '%s' "$payload" | jq -r '.last_assistant_message // empty' 2>/dev/null \
-  | tr '\n' ' ' | head -c 500)
+  | tr '\n' ' ' | perl -CS -pe '$_ = substr($_, 0, 500)' 2>/dev/null)
 
 project=$(project_for_dir "$cwd")
 branch=""; diffstat=""; gitstatus=""
@@ -40,11 +42,16 @@ mkdir -p "$SESSIONS" 2>/dev/null || exit 0
 # context mid-run (cd into another repo) must not fork into a second dump and
 # get distilled twice. Reuse the existing dump for this session_id if present.
 file=""
-for existing in "$SESSIONS"/*__"$short".md; do
+for existing in "$SESSIONS"/*__"$short"*.md; do
   [ -f "$existing" ] || continue
   if grep -q "^session_id: $session_id\$" "$existing"; then file="$existing"; break; fi
 done
-[ -n "$file" ] || file="$SESSIONS/${project}__${short}.md"
+if [ -z "$file" ]; then
+  file="$SESSIONS/${project}__${short}.md"
+  # Short-id collision: that name already belongs to a different session_id.
+  # Fall back to the full id rather than clobbering the other session's dump.
+  [ -f "$file" ] && file="$SESSIONS/${project}__${session_id}.md"
+fi
 
 # Preserve the original started timestamp across turns.
 now=$(date -u '+%Y-%m-%dT%H:%M:%SZ')

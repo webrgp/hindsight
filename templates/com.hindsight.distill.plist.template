@@ -20,12 +20,13 @@
     <key>Minute</key><integer>__MINUTE__</integer>
   </dict>
 
-  <!-- launchd has a minimal env; give it the binaries the runner needs
-       (claude, jq, git live in one of these). -->
+  <!-- launchd has a minimal env; give it the binaries the runner needs.
+       __CLAUDE_BIN_DIR__ is the resolved dir of the user's claude binary at
+       setup time (nvm/npm installs live outside the standard dirs). -->
   <key>EnvironmentVariables</key>
   <dict>
     <key>PATH</key>
-    <string>__HOME__/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+    <string>__CLAUDE_BIN_DIR__:__HOME__/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
     <key>LANG</key>
     <string>en_US.UTF-8</string>
     <key>HINDSIGHT_HOME</key>

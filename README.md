@@ -72,6 +72,7 @@ All optional — defaults apply.
 | `HINDSIGHT_DISTILL_MODEL` | `sonnet` | Model for the distill pass. |
 | `HINDSIGHT_DISTILL_BUDGET` | `1.50` | Max USD per distill run. |
 | `HINDSIGHT_DISTILL_STALE_MIN` | `30` | Skip sessions touched within this many minutes (still active). |
+| `HINDSIGHT_DISTILL_MAX_SESSIONS` | `20` | Max sessions per run; a bigger backlog drains across nights instead of blowing the budget. |
 | `HINDSIGHT_INJECT_MAX_LINES` | `200` | Cap on lines of knowledge injected per session. |
 | `HINDSIGHT_INJECT_MAX_BYTES` | `25600` | Cap on bytes injected per session; overflow truncated with a visible marker. |
 

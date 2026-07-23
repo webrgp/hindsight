@@ -11,13 +11,16 @@ set +e  # never die
 KNOWLEDGE="$HINDSIGHT_HOME/knowledge"
 [ -d "$KNOWLEDGE" ] || exit 0
 
-# Project identity must match capture.sh.
+# Recursion guard: don't inject into distill's own headless claude run — it
+# would burn distill budget and hand it context about a nonexistent project.
+[ -n "${HINDSIGHT_DISTILL:-}" ] && exit 0
+
+# Project identity comes from lib.sh so it always matches capture.sh.
 cwd="$PWD"
+project=$(project_for_dir "$cwd")
 if repo=$(git -C "$cwd" rev-parse --show-toplevel 2>/dev/null); then
-  project=$(basename "$repo")
   skills_dir="$repo/.claude/skills"
 else
-  project=$(basename "$cwd")
   skills_dir="$cwd/.claude/skills"
 fi
 

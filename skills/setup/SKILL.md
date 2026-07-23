@@ -40,11 +40,15 @@ re-run (it unloads and reloads the launchd job).
    `${CLAUDE_PLUGIN_ROOT}/templates/com.hindsight.distill.plist.template`:
    - `__HINDSIGHT_HOME__` → `$VAULT` (absolute path)
    - `__HOME__` → the user's home directory (absolute path)
+   - `__CLAUDE_BIN_DIR__` → `$(dirname "$(command -v claude)")` — launchd's PATH
+     is minimal and nvm/npm installs live outside the standard dirs
    - `__HOUR__` / `__MINUTE__` → chosen time (integers, no leading zeros)
 
-   Write the result to `~/Library/LaunchAgents/com.hindsight.distill.plist`, then:
+   Write the result to `~/Library/LaunchAgents/com.hindsight.distill.plist`, then
+   verify `claude` actually resolves under the plist's PATH before loading:
    ```bash
    plutil -lint ~/Library/LaunchAgents/com.hindsight.distill.plist
+   PATH="<the PATH string you rendered into the plist>" command -v claude   # must resolve
    launchctl unload ~/Library/LaunchAgents/com.hindsight.distill.plist 2>/dev/null
    launchctl load ~/Library/LaunchAgents/com.hindsight.distill.plist
    ```
