@@ -1,0 +1,14 @@
+{
+  "name": "hindsight",
+  "description": "Marketplace for the hindsight plugin (this repo).",
+  "owner": {
+    "name": "Rodrigo Passos"
+  },
+  "plugins": [
+    {
+      "name": "hindsight",
+      "description": "Self-improving layer for Claude Code: learns from your sessions, retains knowledge in a vault, and proposes skills from recurring patterns.",
+      "source": "./"
+    }
+  ]
+}

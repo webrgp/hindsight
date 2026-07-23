@@ -1,0 +1,119 @@
+# hindsight
+
+A self-improving layer for Claude Code, packaged as a plugin: it learns from your
+sessions, retains knowledge in a vault, and proposes skills/automations from
+recurring patterns.
+
+```
+capture (Stop hook) ──▶ ~/.hindsight/sessions ──▶ distill (nightly) ──▶ knowledge/
+                                                            │
+        inject (SessionStart hook) ◀───────────────────────┘
+                                                            └──▶ inbox/proposals.md ──▶ /hindsight:proposals ──▶ skills
+```
+
+Inspired by [recall](https://github.com/maxdmyers/recall) and, upstream of that,
+Andrej Karpathy's [LLM Wiki](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f)
+idea: instead of re-deriving answers from raw sources every time, incrementally
+maintain a persistent, compounding markdown knowledge base.
+
+## How it works
+
+1. **Capture** — a `Stop` hook writes a raw dump per session (project, branch,
+   diffstat, transcript pointer) to the vault. Pure shell + jq, ~zero tokens, never
+   blocks.
+2. **Distill** — a nightly launchd job thins each new transcript, runs a headless,
+   budget-capped Claude pass to update `knowledge/`, refreshes the indexes, and
+   appends pattern observations to `inbox/proposals.md`. Skips (costs $0) when
+   there's nothing new.
+3. **Retrieve** — a `SessionStart` hook injects the global + per-project knowledge
+   indexes as background context, so they survive `/clear` and auto-compact.
+4. **Gate** — distill only *proposes*. `/hindsight:proposals` is where you approve,
+   and approval scaffolds the actual skill at the right scope.
+
+## Requirements
+
+- macOS (the scheduler uses launchd; hooks and manual distill work anywhere)
+- [Claude Code](https://claude.com/claude-code) with the `claude` CLI on PATH
+- `jq` (`brew install jq`); `git` and `perl` ship with macOS
+
+## Install
+
+```
+/plugin marketplace add rodrigopassos/hindsight   # or a local clone path
+/plugin install hindsight@hindsight
+/hindsight:setup
+```
+
+The hooks activate with the plugin install. `/hindsight:setup` does the rest:
+scaffolds the vault, asks what time distill should run, loads the launchd job, and
+offers to git-init the vault for sync.
+
+> Migrating from recall? Remove its two hook entries from `~/.claude/settings.json`
+> and unload `com.recall.distill.plist`, or you'll capture and inject twice. Setup
+> checks for this and warns.
+
+## Usage
+
+| Command | What |
+|---|---|
+| `/hindsight:status` | Queue depth, last distill runs, note counts, pending proposals. |
+| `/hindsight:distill` | Run a distill pass now instead of waiting for tonight. |
+| `/hindsight:proposals` | Review pending proposals; approve → skill gets scaffolded. |
+| `/hindsight:setup` | First-time setup, or re-run to change the schedule. |
+
+## Configuration
+
+All optional — defaults apply.
+
+| Variable | Default | What |
+|---|---|---|
+| `HINDSIGHT_HOME` | `~/.hindsight` | Vault dir (sessions, knowledge, inbox, logs). |
+| `HINDSIGHT_DISTILL_THRESHOLD` | `1` | Min undistilled sessions before a run does work. |
+| `HINDSIGHT_DISTILL_MODEL` | `sonnet` | Model for the distill pass. |
+| `HINDSIGHT_DISTILL_BUDGET` | `1.50` | Max USD per distill run. |
+| `HINDSIGHT_DISTILL_STALE_MIN` | `30` | Skip sessions touched within this many minutes (still active). |
+| `HINDSIGHT_INJECT_MAX_LINES` | `200` | Cap on lines of knowledge injected per session. |
+| `HINDSIGHT_INJECT_MAX_BYTES` | `25600` | Cap on bytes injected per session; overflow truncated with a visible marker. |
+
+Setup bakes `HINDSIGHT_HOME` into the launchd plist; export it in your shell profile
+if you want the hooks to use a custom vault too.
+
+## Vault layout
+
+```
+~/.hindsight/
+  sessions/                     raw dumps, one per session
+  knowledge/
+    global/<topic>.md           cross-project (+ INDEX.md, auto-injected)
+    projects/<proj>/<topic>.md  project-specific (+ INDEX.md)
+  inbox/proposals.md            skill/automation candidates (you approve)
+  bin/run-distill.sh            stable launchd entrypoint (survives plugin updates)
+  logs/                         distill logs
+```
+
+Knowledge lands at the narrowest scope that fits: a pattern in one project becomes a
+project-local skill (`<proj>/.claude/skills/`); a pattern across two or more projects
+becomes a global one (`~/.claude/skills/`).
+
+## Git sync (optional)
+
+If the vault is a git repo (setup offers to init one), distill auto-commits after
+each run and pushes when an `origin` remote exists. Without git, knowledge is still
+saved locally — nothing else changes.
+
+## Uninstall
+
+```
+/plugin uninstall hindsight@hindsight
+launchctl unload ~/Library/LaunchAgents/com.hindsight.distill.plist
+rm ~/Library/LaunchAgents/com.hindsight.distill.plist
+```
+
+The vault is never touched by uninstall — delete `~/.hindsight` yourself if you want
+the captured data gone.
+
+## Roadmap
+
+- Dashboard (CLI + self-contained HTML)
+- Migration helper from a recall vault
+- Linux support (systemd timer instead of launchd)

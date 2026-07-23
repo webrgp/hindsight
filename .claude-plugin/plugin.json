@@ -1,0 +1,10 @@
+{
+  "name": "hindsight",
+  "displayName": "Hindsight",
+  "description": "Self-improving layer for Claude Code: learns from your sessions, retains knowledge in a vault, and proposes skills from recurring patterns.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Rodrigo Passos"
+  },
+  "hooks": "./hooks/hooks.json"
+}

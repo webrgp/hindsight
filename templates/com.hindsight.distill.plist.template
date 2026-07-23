@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.hindsight.distill</string>
+
+  <!-- The shim resolves the current (versioned) plugin install path at run time,
+       so this plist survives plugin updates without re-running setup. -->
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>__HINDSIGHT_HOME__/bin/run-distill.sh</string>
+  </array>
+
+  <!-- Daily at the chosen time. launchd runs missed jobs on next wake if asleep. -->
+  <key>StartCalendarInterval</key>
+  <dict>
+    <key>Hour</key><integer>__HOUR__</integer>
+    <key>Minute</key><integer>__MINUTE__</integer>
+  </dict>
+
+  <!-- launchd has a minimal env; give it the binaries the runner needs
+       (claude, jq, git live in one of these). -->
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key>
+    <string>__HOME__/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+    <key>LANG</key>
+    <string>en_US.UTF-8</string>
+    <key>HINDSIGHT_HOME</key>
+    <string>__HINDSIGHT_HOME__</string>
+  </dict>
+
+  <key>RunAtLoad</key>
+  <false/>
+
+  <key>StandardOutPath</key>
+  <string>__HINDSIGHT_HOME__/logs/distill.launchd.log</string>
+  <key>StandardErrorPath</key>
+  <string>__HINDSIGHT_HOME__/logs/distill.launchd.log</string>
+</dict>
+</plist>
