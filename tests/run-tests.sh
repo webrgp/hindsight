@@ -246,9 +246,9 @@ assert "dashboard run cost preserved" \
 assert "dashboard counts knowledge notes" \
   test "$(printf '%s' "$data" | jq '.knowledge.projects[0].notes')" = "1"
 assert "dashboard lists pending proposal" \
-  test "$(printf '%s' "$data" | jq -r '.proposals.pending[0].name')" = "release-notes-ritual"
-assert "dashboard excludes rejected from pending" \
-  test "$(printf '%s' "$data" | jq '.proposals.pending | length')" = "1"
+  test "$(printf '%s' "$data" | jq -r '.proposals.items[] | select(.status=="proposed") | .name')" = "release-notes-ritual"
+assert "dashboard carries proposal statuses" \
+  test "$(printf '%s' "$data" | jq '[.proposals.items[] | select(.status=="rejected")] | length')" = "1"
 assert "dashboard counts rejected" \
   test "$(printf '%s' "$data" | jq '.proposals.rejected')" = "1"
 

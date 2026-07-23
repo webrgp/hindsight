@@ -26,6 +26,18 @@ grep -rh '^started:' "$SESSIONS" 2>/dev/null | sed 's/^started: //' | cut -c1-10
   | awk '{printf "{\"date\":\"%s\",\"count\":%d}\n", $2, $1}' \
   | jq -s . > "$TMPD/by_day.json"
 
+# Recent sessions: newest 12 by frontmatter `updated`.
+for f in "$SESSIONS"/*.md; do
+  [ -f "$f" ] || continue
+  printf '%s\x1f%s\x1f%s\n' \
+    "$(grep -m1 '^updated:' "$f" | sed 's/^updated: *//')" \
+    "$(grep -m1 '^project:' "$f" | sed 's/^project: *//')" \
+    "$(grep -m1 '^distilled:' "$f" | sed 's/^distilled: *//')"
+done 2>/dev/null | sort -r | head -12 | while IFS=$'\x1f' read -r upd proj dis; do
+  jq -n --arg u "$upd" --arg p "$proj" --argjson d "$([ "$dis" = true ] && echo true || echo false)" \
+    '{updated:$u, project:$p, distilled:$d}'
+done | jq -s . > "$TMPD/recent_sessions.json"
+
 # --- distill runs -----------------------------------------------------------
 if [ -f "$RUNS" ]; then tail -50 "$RUNS" | jq -s . > "$TMPD/runs.json"
 else echo '[]' > "$TMPD/runs.json"; fi
@@ -49,9 +61,12 @@ done | sort -rn | head -10 | while IFS=$'\t' read -r m n; do
     (*/global/*) scope="global" ;;
     (*) scope=$(printf '%s' "$n" | sed 's|.*/projects/||; s|/.*||') ;;
   esac
-  jq -n --arg name "$(basename "$n" .md)" --arg scope "$scope" \
+  name=$(basename "$n" .md)
+  summary=$(grep -h "\[\[$name\]\]" "$KNOWLEDGE"/global/INDEX.md "$KNOWLEDGE"/projects/*/INDEX.md 2>/dev/null \
+    | head -1 | sed 's/.*—[[:space:]]*//')
+  jq -n --arg name "$name" --arg scope "$scope" --arg summary "$summary" \
         --arg updated "$(date -r "$m" '+%Y-%m-%d' 2>/dev/null || echo '?')" \
-        '{name:$name, scope:$scope, updated:$updated}' >> "$TMPD/recent.jsonl"
+        '{name:$name, scope:$scope, summary:$summary, updated:$updated}' >> "$TMPD/recent.jsonl"
 done
 jq -s . "$TMPD/recent.jsonl" > "$TMPD/recent.json"
 
@@ -62,14 +77,19 @@ implemented=$(count_status implemented); implemented=${implemented:-0}
 rejected=$(count_status rejected); rejected=${rejected:-0}
 if [ -f "$PROPOSALS" ]; then
   awk '
-    /^## /          {name=substr($0,4)}
-    /^- seen: /     {seen[name]=substr($0,9)}
-    /^- scope: /    {scope[name]=substr($0,10)}
-    /^- status: proposed/ {printf "%s\t%s\t%s\n", name, seen[name], scope[name]}
+    function flush(){ if (n != "") printf "%s\x1f%s\x1f%s\x1f%s\x1f%s\x1f%s\n", n, seen, what, scope, conf, st }
+    /^## /           { flush(); n=substr($0,4); seen=what=scope=conf=st="" }
+    /^- seen: /      { seen=substr($0,9) }
+    /^- what: /      { what=substr($0,9) }
+    /^- scope: /     { scope=substr($0,10) }
+    /^- confidence: /{ conf=substr($0,15) }
+    /^- status: /    { st=substr($0,11) }
+    END { flush() }
   ' "$PROPOSALS"
-else :; fi | while IFS=$'\t' read -r name seen scope; do
-  jq -n --arg n "$name" --arg s "$seen" --arg c "$scope" '{name:$n, seen:$s, scope:$c}'
-done | jq -s . > "$TMPD/pending.json"
+else :; fi | while IFS=$'\x1f' read -r name seen what scope conf st; do
+  jq -n --arg n "$name" --arg s "$seen" --arg w "$what" --arg c "$scope" --arg f "$conf" --arg t "$st" \
+    '{name:$n, seen:$s, what:$w, scope:$c, confidence:$f, status:$t}'
+done | jq -s . > "$TMPD/items.json"
 
 # --- assemble + inject --------------------------------------------------------
 jq -n \
@@ -81,14 +101,15 @@ jq -n \
   --argjson global "${global:-0}" \
   --slurpfile projects "$TMPD/projects.json" \
   --slurpfile recent "$TMPD/recent.json" \
+  --slurpfile recent_sessions "$TMPD/recent_sessions.json" \
   --argjson proposed "$proposed" --argjson implemented "$implemented" --argjson rejected "$rejected" \
-  --slurpfile pending "$TMPD/pending.json" \
+  --slurpfile items "$TMPD/items.json" \
   '{
     generated_at: $generated_at,
-    sessions: { total: $total, undistilled: $undistilled, by_day: $by_day[0] },
+    sessions: { total: $total, undistilled: $undistilled, by_day: $by_day[0], recent: $recent_sessions[0] },
     runs: $runs[0],
     knowledge: { global: $global, projects: $projects[0], recent: $recent[0] },
-    proposals: { proposed: $proposed, implemented: $implemented, rejected: $rejected, pending: $pending[0] }
+    proposals: { proposed: $proposed, implemented: $implemented, rejected: $rejected, items: $items[0] }
   }' > "$TMPD/data.json"
 
 awk '/^__DATA__$/{exit}1' "$TPL" > "$OUT.tmp"

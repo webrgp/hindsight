@@ -3,105 +3,147 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>hindsight</title>
+<title>hindsight · dashboard</title>
 <style>
-  :root {
-    color-scheme: light;
-    --page:           #f9f9f7;
-    --surface-1:      #fcfcfb;
-    --text-primary:   #0b0b0b;
-    --text-secondary: #52514e;
-    --text-muted:     #898781;
-    --grid:           #e1e0d9;
-    --baseline:       #c3c2b7;
-    --border:         rgba(11,11,11,0.10);
-    --series-1:       #2a78d6;
-    --status-good:    #0ca30c;
-    --status-critical:#d03b3b;
-    --good-text:      #006300;
+  :root{
+    --bg:#0b0d12; --bg-2:#11141c; --panel:#161a24; --line:#232938; --line-2:#2e3650;
+    --ink:#e7eaf3; --muted:#8b93a7; --faint:#5b6478;
+    --accent:#a78bfa; --accent-2:#5eead4; --amber:#fbbf24; --rose:#fb7185; --green:#4ade80;
+    --mono:ui-monospace,"SF Mono","JetBrains Mono",Menlo,monospace;
+    --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Inter,sans-serif;
   }
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) {
-      color-scheme: dark;
-      --page:           #0d0d0d;
-      --surface-1:      #1a1a19;
-      --text-primary:   #ffffff;
-      --text-secondary: #c3c2b7;
-      --text-muted:     #898781;
-      --grid:           #2c2c2a;
-      --baseline:       #383835;
-      --border:         rgba(255,255,255,0.10);
-      --series-1:       #3987e5;
-      --good-text:      #0ca30c;
-    }
-  }
-  * { box-sizing: border-box; margin: 0; }
-  body {
-    background: var(--page);
-    color: var(--text-primary);
-    font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
-    padding: 24px;
-    max-width: 1000px;
-    margin: 0 auto;
-  }
-  header { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 20px; }
-  header h1 { font-size: 18px; font-weight: 600; }
-  header .stamp { color: var(--text-muted); font-size: 12px; }
-  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 20px; }
-  .tile { background: var(--surface-1); border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px; }
-  .tile .label { color: var(--text-secondary); font-size: 12px; }
-  .tile .value { font-size: 28px; font-weight: 600; margin-top: 2px; }
-  .card { background: var(--surface-1); border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-bottom: 20px; overflow-x: auto; }
-  .card h2 { font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 12px; }
-  svg text { fill: var(--text-muted); font-size: 11px; font-variant-numeric: tabular-nums; }
-  table { border-collapse: collapse; width: 100%; font-size: 13px; }
-  th { text-align: left; color: var(--text-muted); font-weight: 500; font-size: 12px; padding: 4px 12px 4px 0; border-bottom: 1px solid var(--grid); }
-  td { padding: 5px 12px 5px 0; border-bottom: 1px solid var(--grid); }
-  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
-  tr:last-child td { border-bottom: none; }
-  .ok   { color: var(--good-text); }
-  .fail { color: var(--status-critical); }
-  details { margin-top: 8px; }
-  summary { color: var(--text-muted); font-size: 12px; cursor: pointer; }
-  .empty { color: var(--text-muted); }
-  #tip {
-    position: fixed; display: none; pointer-events: none; z-index: 10;
-    background: var(--surface-1); border: 1px solid var(--border); border-radius: 6px;
-    padding: 5px 9px; font-size: 12px; color: var(--text-primary);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.12); white-space: nowrap;
-  }
-  .scope { color: var(--text-muted); }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;line-height:1.5}
+  body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
+    background:radial-gradient(900px 600px at 90% -10%,rgba(167,139,250,.10),transparent 60%),
+               radial-gradient(700px 500px at -5% 110%,rgba(94,234,212,.06),transparent 55%)}
+  .wrap{position:relative;z-index:1;max-width:1180px;margin:0 auto;padding:clamp(22px,4vw,46px) clamp(18px,4vw,40px) 80px}
+
+  .topbar{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;flex-wrap:wrap;margin-bottom:32px;
+    padding-bottom:22px;border-bottom:1px solid var(--line)}
+  .brand{font-family:var(--mono);font-size:clamp(30px,5vw,44px);font-weight:700;letter-spacing:-.04em}
+  .brand .dot{color:var(--accent)}
+  .brand .sub{display:block;font-family:var(--sans);font-size:13px;font-weight:400;color:var(--muted);letter-spacing:0;margin-top:4px}
+  .tmeta{text-align:right;font-family:var(--mono);font-size:12px;color:var(--faint);line-height:1.9}
+  .pill{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line-2);border-radius:999px;padding:5px 12px;color:var(--ink)}
+  .pill .dot{width:8px;height:8px;border-radius:50%}
+  .pill.ok .dot{background:var(--green)} .pill.warn .dot{background:var(--amber)} .pill.bad .dot{background:var(--rose)}
+
+  .stats{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:26px}
+  @media(max-width:920px){.stats{grid-template-columns:repeat(3,1fr)}}
+  @media(max-width:520px){.stats{grid-template-columns:repeat(2,1fr)}}
+  .stat{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px 16px}
+  .stat .big{font-family:var(--mono);font-size:clamp(26px,3.4vw,36px);font-weight:700;letter-spacing:-.03em}
+  .stat .lbl{color:var(--muted);font-size:12px;margin-top:4px}
+  .stat.hl{border-color:var(--line-2);box-shadow:inset 0 0 0 1px rgba(167,139,250,.18)}
+  .stat.hl .big{color:var(--accent)}
+
+  .grid2{display:grid;grid-template-columns:1.25fr .9fr;gap:18px}
+  @media(max-width:880px){.grid2{grid-template-columns:1fr}}
+  .panel{background:linear-gradient(180deg,var(--panel),var(--bg-2));border:1px solid var(--line);border-radius:14px;padding:20px 22px;margin-bottom:18px;overflow-x:auto}
+  .panel>h2{font-size:13px;font-family:var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--faint);
+    display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+  .panel>h2 .count{color:var(--accent)}
+
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  td,th{padding:9px 6px;border-bottom:1px solid var(--line);vertical-align:middle}
+  th{text-align:left;color:var(--faint);font-family:var(--mono);font-size:11px;font-weight:500;letter-spacing:.06em}
+  tr:last-child td{border-bottom:none}
+  td.proj{font-weight:600}
+  td.when,td.num{color:var(--muted);font-family:var(--mono);font-size:12.5px;white-space:nowrap}
+  td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+  td.st{text-align:right;white-space:nowrap}
+  .chip{font-family:var(--mono);font-size:11px;border-radius:999px;padding:3px 9px;border:1px solid var(--line-2)}
+  .chip.done{color:var(--accent-2);border-color:rgba(94,234,212,.3)}
+  .chip.pending{color:var(--amber);border-color:rgba(251,191,36,.3)}
+  .ok{color:var(--green)} .fail{color:var(--rose)}
+
+  .note{padding:11px 0;border-bottom:1px solid var(--line)}
+  .note:last-child{border-bottom:none}
+  .nh{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+  .nname{font-family:var(--mono);font-size:13.5px;color:var(--accent-2);font-weight:600}
+  .nscope{font-family:var(--mono);font-size:10.5px;color:var(--faint);border:1px solid var(--line);border-radius:999px;padding:1px 8px}
+  .new{font-family:var(--mono);font-size:10px;color:var(--accent);border:1px solid rgba(167,139,250,.4);border-radius:999px;padding:1px 7px;letter-spacing:.05em}
+  .nwhen{margin-left:auto;font-family:var(--mono);font-size:11.5px;color:var(--faint)}
+  .nsum{color:var(--muted);font-size:13px;margin-top:3px;max-width:62ch}
+
+  .prop{border:1px solid var(--line);border-radius:11px;padding:14px 16px;margin-bottom:11px;background:rgba(255,255,255,.012)}
+  .prop.pending{border-left:2px solid var(--amber)}
+  .prop.done{border-left:2px solid var(--accent-2);opacity:.72}
+  .ph{display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .pname{font-family:var(--mono);font-weight:600;font-size:14px}
+  .pst{font-family:var(--mono);font-size:10.5px;border-radius:999px;padding:2px 9px;letter-spacing:.03em;white-space:nowrap}
+  .pst.pending{color:var(--amber);border:1px solid rgba(251,191,36,.35)}
+  .pst.done{color:var(--accent-2);border:1px solid rgba(94,234,212,.3)}
+  .pwhat{color:var(--muted);font-size:13px;margin:8px 0 12px;line-height:1.5}
+  .pmeta{display:flex;flex-wrap:wrap;gap:8px}
+  .tag{font-family:var(--mono);font-size:11px;color:var(--ink);border:1px solid var(--line-2);border-radius:999px;padding:3px 10px;display:inline-flex;align-items:center;gap:6px}
+  .tag.faint{color:var(--faint)}
+  .dot{width:7px;height:7px;border-radius:50%}
+  .c-high{background:var(--green)} .c-med{background:var(--amber)} .c-low{background:var(--rose)}
+  .empty{color:var(--faint);font-size:13px;font-style:italic;padding:8px 0}
+
+  .area{display:flex;align-items:center;gap:12px;padding:7px 0}
+  .al{font-family:var(--mono);font-size:12.5px;width:120px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .abar{flex:1;height:6px;background:var(--bg);border-radius:999px;overflow:hidden;border:1px solid var(--line)}
+  .abar i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),var(--accent-2))}
+  .ac{font-family:var(--mono);font-size:12px;color:var(--muted);width:24px;text-align:right}
+
+  svg text{fill:var(--faint);font-size:11px;font-variant-numeric:tabular-nums}
+  details{margin-top:8px}
+  summary{color:var(--faint);font-size:12px;cursor:pointer;font-family:var(--mono)}
+  #tip{position:fixed;display:none;pointer-events:none;z-index:10;
+    background:var(--panel);border:1px solid var(--line-2);border-radius:6px;
+    padding:5px 9px;font-size:12px;color:var(--ink);font-family:var(--mono);
+    box-shadow:0 2px 8px rgba(0,0,0,.4);white-space:nowrap}
+  footer{margin-top:34px;text-align:center;font-family:var(--mono);font-size:11px;color:var(--faint);letter-spacing:.08em}
 </style>
 </head>
 <body>
 <div id="tip"></div>
-<header>
-  <h1>hindsight</h1>
-  <span class="stamp" id="stamp"></span>
-</header>
+<div class="wrap">
 
-<div class="tiles" id="tiles"></div>
+  <div class="topbar">
+    <div class="brand">hindsight<span class="dot">.</span><span class="sub">memory &amp; learning system — live state</span></div>
+    <div class="tmeta" id="tmeta"></div>
+  </div>
 
-<div class="card">
-  <h2>Sessions captured — last 30 days</h2>
-  <div id="chart-days"></div>
-  <details><summary>View as table</summary><div id="table-days"></div></details>
-</div>
+  <div class="stats" id="stats"></div>
 
-<div class="card">
-  <h2>Distill cost per run</h2>
-  <div id="chart-cost"></div>
-  <details><summary>View as table</summary><div id="table-runs"></div></details>
-</div>
+  <div class="grid2">
+    <div>
+      <div class="panel">
+        <h2>Recent sessions <span class="count" id="sess-count"></span></h2>
+        <div id="table-sessions"></div>
+      </div>
+      <div class="panel">
+        <h2>Sessions captured — last 30 days</h2>
+        <div id="chart-days"></div>
+        <details><summary>view as table</summary><div id="table-days"></div></details>
+      </div>
+      <div class="panel">
+        <h2>Recently distilled knowledge <span class="count" id="note-count"></span></h2>
+        <div id="notes"></div>
+      </div>
+    </div>
+    <div>
+      <div class="panel">
+        <h2>Inbox · proposals <span class="count" id="prop-count"></span></h2>
+        <div id="proposals"></div>
+      </div>
+      <div class="panel">
+        <h2>Knowledge by area</h2>
+        <div id="areas"></div>
+      </div>
+      <div class="panel">
+        <h2>Distill cost per run</h2>
+        <div id="chart-cost"></div>
+        <details><summary>view as table</summary><div id="table-runs"></div></details>
+      </div>
+    </div>
+  </div>
 
-<div class="card">
-  <h2>Knowledge — recent notes</h2>
-  <div id="table-notes"></div>
-</div>
-
-<div class="card">
-  <h2>Proposals</h2>
-  <div id="table-proposals"></div>
+  <footer id="foot"></footer>
 </div>
 
 <script>
@@ -112,19 +154,41 @@ __DATA__
 const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const fmtDay = iso => new Date(iso + 'T00:00:00').toLocaleDateString(undefined, {month:'short', day:'numeric'});
 const fmtUsd = n => '$' + Number(n).toFixed(2);
+const reltime = iso => {
+  if (!iso) return '—';
+  const days = Math.floor((new Date(DATA.generated_at) - new Date(iso)) / 86400000);
+  return days <= 0 ? 'today' : days === 1 ? 'yesterday' : days + 'd ago';
+};
 
-document.getElementById('stamp').textContent = 'generated ' + new Date(DATA.generated_at).toLocaleString();
+/* ---- topbar meta: health pill from last run ---- */
+const lastRun = DATA.runs[DATA.runs.length - 1];
+const health = !lastRun ? ['warn', 'no runs yet'] : lastRun.ok ? ['ok', 'healthy'] : ['bad', 'last run failed'];
+document.getElementById('tmeta').innerHTML =
+  `<span class="pill ${health[0]}"><span class="dot"></span>distill · ${esc(health[1])}</span><br>` +
+  `updated ${esc(new Date(DATA.generated_at).toLocaleString())}<br>` +
+  `last distill: ${esc(lastRun ? reltime(lastRun.date) : 'never')}`;
 
 /* ---- stat tiles ---- */
-const tiles = [
-  ['Sessions captured', DATA.sessions.total],
-  ['Undistilled queue', DATA.sessions.undistilled],
-  ['Knowledge notes', DATA.knowledge.global + DATA.knowledge.projects.reduce((a,p)=>a+p.notes,0)],
-  ['Pending proposals', DATA.proposals.proposed],
-  ['Total distill spend', fmtUsd(DATA.runs.reduce((a,r)=>a+r.cost,0))],
+const totalNotes = DATA.knowledge.global + DATA.knowledge.projects.reduce((a,p)=>a+p.notes,0);
+const distilled = DATA.sessions.total - DATA.sessions.undistilled;
+const stats = [
+  ['sessions captured', DATA.sessions.total, false],
+  ['distilled', distilled, false],
+  ['in queue', DATA.sessions.undistilled, DATA.sessions.undistilled > 0],
+  ['knowledge notes', totalNotes, false],
+  ['projects', DATA.knowledge.projects.length, false],
+  ['proposals pending', DATA.proposals.proposed, DATA.proposals.proposed > 0],
 ];
-document.getElementById('tiles').innerHTML = tiles.map(([l,v]) =>
-  `<div class="tile"><div class="label">${esc(l)}</div><div class="value">${esc(v)}</div></div>`).join('');
+document.getElementById('stats').innerHTML = stats.map(([l,v,hl]) =>
+  `<div class="stat${hl?' hl':''}"><div class="big">${esc(v)}</div><div class="lbl">${esc(l)}</div></div>`).join('');
+
+/* ---- recent sessions ---- */
+document.getElementById('sess-count').textContent = DATA.sessions.total + ' total';
+document.getElementById('table-sessions').innerHTML = DATA.sessions.recent.length ?
+  '<table>' + DATA.sessions.recent.map(s =>
+    `<tr><td class="proj">${esc(s.project)}</td><td class="when">${esc(reltime(s.updated))}</td>` +
+    `<td class="st"><span class="chip ${s.distilled?'done':'pending'}">${s.distilled?'distilled':'queued'}</span></td></tr>`
+  ).join('') + '</table>' : '<p class="empty">no sessions yet</p>';
 
 /* ---- tooltip ---- */
 const tip = document.getElementById('tip');
@@ -145,8 +209,6 @@ function columns(mount, points, valueFmt, tipFmt, integer) {
   const padL = 36, padB = 20, padT = 8;
   const plotW = W - padL - 8, plotH = H - padT - padB;
   const max = Math.max(...points.map(p => p.v));
-  // clean tick ceiling — integer data gets an even integer top so the midpoint
-  // tick is never fractional; continuous data gets 1/2/5 × 10^k
   let top;
   if (integer) top = Math.max(2, Math.ceil(max/2)*2);
   else {
@@ -154,22 +216,21 @@ function columns(mount, points, valueFmt, tipFmt, integer) {
     top = [1,2,5,10].map(m => m*pow).find(t => t >= max);
   }
   const slot = plotW / points.length;
-  const bw = Math.min(24, Math.max(3, slot - 2));   // 2px surface gap between bars
+  const bw = Math.min(24, Math.max(3, slot - 2));
   const y = v => padT + plotH * (1 - v/top);
   let s = `<svg width="${W}" height="${H}" role="img">`;
   [0.5, 1].forEach(f => {
     const gy = y(top*f);
-    s += `<line x1="${padL}" y1="${gy}" x2="${W-8}" y2="${gy}" stroke="var(--grid)" stroke-width="1"/>`;
+    s += `<line x1="${padL}" y1="${gy}" x2="${W-8}" y2="${gy}" stroke="var(--line)" stroke-width="1"/>`;
     s += `<text x="${padL-6}" y="${gy+4}" text-anchor="end">${valueFmt(top*f)}</text>`;
   });
-  s += `<line x1="${padL}" y1="${y(0)}" x2="${W-8}" y2="${y(0)}" stroke="var(--baseline)" stroke-width="1"/>`;
+  s += `<line x1="${padL}" y1="${y(0)}" x2="${W-8}" y2="${y(0)}" stroke="var(--line-2)" stroke-width="1"/>`;
   points.forEach((p, i) => {
     const x = padL + i*slot + (slot-bw)/2, ty = y(p.v), base = y(0);
     if (p.v > 0) {
       const r = Math.min(4, bw/2, (base-ty));
-      s += `<path class="bar" data-i="${i}" fill="var(--series-1)" d="M${x},${base} L${x},${ty+r} Q${x},${ty} ${x+r},${ty} L${x+bw-r},${ty} Q${x+bw},${ty} ${x+bw},${ty+r} L${x+bw},${base} Z"/>`;
+      s += `<path class="bar" data-i="${i}" fill="var(--accent)" d="M${x},${base} L${x},${ty+r} Q${x},${ty} ${x+r},${ty} L${x+bw-r},${ty} Q${x+bw},${ty} ${x+bw},${ty+r} L${x+bw},${base} Z"/>`;
     }
-    // full-height transparent hit target: bigger than the mark
     s += `<rect class="hit" data-i="${i}" x="${padL+i*slot}" y="${padT}" width="${slot}" height="${plotH}" fill="transparent"/>`;
     if (points.length <= 31 && (i % Math.ceil(points.length/6) === 0))
       s += `<text x="${x+bw/2}" y="${H-4}" text-anchor="middle">${esc(p.label)}</text>`;
@@ -194,33 +255,54 @@ document.getElementById('table-days').innerHTML =
   days.filter(d => d.v).map(d => `<tr><td>${fmtDay(d.date)}</td><td class="num">${d.v}</td></tr>`).join('') +
   '</table>';
 
-/* cost per run */
+/* ---- recent notes ---- */
+document.getElementById('note-count').textContent = totalNotes + ' notes';
+document.getElementById('notes').innerHTML = DATA.knowledge.recent.length ?
+  DATA.knowledge.recent.map(n => {
+    const days = Math.floor((new Date(DATA.generated_at) - new Date(n.updated)) / 86400000);
+    const isNew = days <= 3 ? '<span class="new">new</span>' : '';
+    return `<div class="note"><div class="nh"><span class="nname">${esc(n.name)}</span>` +
+      `<span class="nscope">${esc(n.scope)}</span>${isNew}<span class="nwhen">${esc(reltime(n.updated))}</span></div>` +
+      `<div class="nsum">${esc(n.summary || '—')}</div></div>`;
+  }).join('') : '<p class="empty">no notes yet — distill will populate as sessions accumulate</p>';
+
+/* ---- proposals: pending first, then implemented ---- */
+document.getElementById('prop-count').textContent = DATA.proposals.proposed + ' pending';
+const items = DATA.proposals.items.filter(p => p.status !== 'rejected');
+items.sort((a,b) => (a.status === 'proposed' ? 0 : 1) - (b.status === 'proposed' ? 0 : 1));
+document.getElementById('proposals').innerHTML = items.length ?
+  items.map(p => {
+    const done = p.status !== 'proposed';
+    const ccls = p.confidence === 'high' ? 'c-high' : p.confidence === 'med' ? 'c-med' : 'c-low';
+    return `<div class="prop ${done?'done':'pending'}"><div class="ph"><span class="pname">${esc(p.name)}</span>` +
+      `<span class="pst ${done?'done':'pending'}">${done?'implemented':'awaiting approval'}</span></div>` +
+      `<div class="pwhat">${esc(p.what)}</div>` +
+      `<div class="pmeta"><span class="tag">${esc(p.scope)}</span>` +
+      `<span class="tag"><span class="dot ${ccls}"></span>${esc(p.confidence)} confidence</span>` +
+      `<span class="tag faint">${esc(p.seen)}</span></div></div>`;
+  }).join('') : '<div class="empty">inbox empty — no proposals yet</div>';
+
+/* ---- knowledge by area ---- */
+const areas = [{name:'global', n:DATA.knowledge.global}, ...DATA.knowledge.projects.map(p => ({name:p.project, n:p.notes}))];
+const maxA = Math.max(1, ...areas.map(a => a.n));
+document.getElementById('areas').innerHTML = areas.map(a =>
+  `<div class="area"><span class="al">${esc(a.name)}</span>` +
+  `<span class="abar"><i style="width:${Math.round(a.n*100/maxA)}%"></i></span>` +
+  `<span class="ac">${a.n}</span></div>`).join('');
+
+/* ---- cost per run ---- */
 const runs = DATA.runs.slice(-20);
 columns('chart-cost', runs.map(r => ({ label: fmtDay(r.date.slice(0,10)), v: r.cost, run: r })),
   v => fmtUsd(v), p => `${fmtDay(p.run.date.slice(0,10))} — ${fmtUsd(p.v)}, ${p.run.sessions} session${p.run.sessions===1?'':'s'}, ${p.run.ok ? 'ok' : 'failed'}`);
 document.getElementById('table-runs').innerHTML = runs.length ?
   '<table><tr><th>Date</th><th class="num">Sessions</th><th class="num">Cost</th><th class="num">Duration</th><th>Status</th></tr>' +
   runs.slice().reverse().map(r =>
-    `<tr><td>${esc(r.date.slice(0,10))}</td><td class="num">${r.sessions}</td><td class="num">${fmtUsd(r.cost)}</td><td class="num">${Math.round(r.duration_ms/1000)}s</td>` +
+    `<tr><td class="when">${esc(r.date.slice(0,10))}</td><td class="num">${r.sessions}</td><td class="num">${fmtUsd(r.cost)}</td><td class="num">${Math.round(r.duration_ms/1000)}s</td>` +
     `<td class="${r.ok?'ok':'fail'}">${r.ok ? '✓ ok' : '✗ failed'}</td></tr>`).join('') +
   '</table>' : '<p class="empty">(no runs yet)</p>';
 
-/* knowledge notes */
-document.getElementById('table-notes').innerHTML = DATA.knowledge.recent.length ?
-  '<table><tr><th>Note</th><th>Scope</th><th>Updated</th></tr>' +
-  DATA.knowledge.recent.map(n =>
-    `<tr><td>${esc(n.name)}</td><td class="scope">${esc(n.scope)}</td><td>${esc(n.updated)}</td></tr>`).join('') +
-  '</table>' : '<p class="empty">(no notes yet — distill will populate as sessions accumulate)</p>';
-
-/* proposals */
-const pr = DATA.proposals;
-document.getElementById('table-proposals').innerHTML =
-  `<p style="margin-bottom:8px">${pr.proposed} pending · ${pr.implemented} implemented · ${pr.rejected} rejected</p>` +
-  (pr.pending.length ?
-    '<table><tr><th>Pattern</th><th>Seen</th><th>Scope</th></tr>' +
-    pr.pending.map(p => `<tr><td>${esc(p.name)}</td><td>${esc(p.seen)}</td><td class="scope">${esc(p.scope)}</td></tr>`).join('') +
-    '</table>'
-    : '<p class="empty">(nothing pending — approve via /hindsight:proposals when distill finds patterns)</p>');
+document.getElementById('foot').textContent =
+  `hindsight · capture → distill → retrieve → gate · generated ${new Date(DATA.generated_at).toLocaleString()}`;
 </script>
 </body>
 </html>
