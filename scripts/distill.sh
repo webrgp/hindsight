@@ -20,8 +20,16 @@ MODEL="${HINDSIGHT_DISTILL_MODEL:-sonnet}"
 BUDGET="${HINDSIGHT_DISTILL_BUDGET:-5.00}"
 STALE="${HINDSIGHT_DISTILL_STALE_MIN:-30}"
 
-# --no-budget: run the claude pass with no spend cap (manual backfill drains).
-[ "${1:-}" = "--no-budget" ] && BUDGET=""
+# Flags for manual runs (launchd passes none):
+#   --force      ignore the undistilled-count THRESHOLD; run whatever is pending.
+#   --no-budget  run the claude pass with no spend cap (manual backfill drains).
+FORCE=0
+for arg in "$@"; do
+  case "$arg" in
+    --force) FORCE=1 ;;
+    --no-budget) BUDGET="" ;;
+  esac
+done
 
 mkdir -p "$HINDSIGHT_HOME/logs" "$SESSIONS"
 # Log lines always land in $LOG; when run from a terminal they also echo to
@@ -62,7 +70,8 @@ find "$SESSIONS" -name '*.md' -mmin +"$STALE" 2>/dev/null | sort | while read -r
   grep -q '^distilled: false' "$f" && printf '%s\n' "$f" >> "$TODO"
 done
 COUNT=$(wc -l < "$TODO" | tr -d ' ')
-if [ "$COUNT" -lt "$THRESHOLD" ]; then log "skip: $COUNT undistilled (< $THRESHOLD)"; exit 0; fi
+if [ "$COUNT" -eq 0 ]; then log "skip: 0 undistilled"; exit 0; fi
+if [ "$FORCE" -ne 1 ] && [ "$COUNT" -lt "$THRESHOLD" ]; then log "skip: $COUNT undistilled (< $THRESHOLD)"; exit 0; fi
 
 # Cap the batch so a huge backlog can't outgrow the per-run budget and wedge
 # every subsequent night. The remainder drains on following runs.

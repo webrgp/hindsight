@@ -57,7 +57,7 @@ offers to git-init the vault for sync.
 | Command | What |
 |---|---|
 | `/hindsight:status` | Queue depth, last distill runs, note counts, pending proposals. |
-| `/hindsight:distill` | Run a distill pass now instead of waiting for tonight. |
+| `/hindsight:distill` | Run a distill pass now instead of waiting for tonight (forces past the threshold). |
 | `/hindsight:proposals` | Review pending proposals; approve → skill gets scaffolded. |
 | `/hindsight:setup` | First-time setup, or re-run to change the schedule. |
 | `/hindsight:backfill` | Capture pre-plugin sessions from `~/.claude/projects` transcripts and distill them. |
@@ -71,7 +71,7 @@ All optional — defaults apply.
 | Variable | Default | What |
 |---|---|---|
 | `HINDSIGHT_HOME` | `~/.hindsight` | Vault dir (sessions, knowledge, inbox, logs). |
-| `HINDSIGHT_DISTILL_THRESHOLD` | `1` | Min undistilled sessions before a run does work. |
+| `HINDSIGHT_DISTILL_THRESHOLD` | `1` | Min undistilled sessions before a nightly run does work. `distill.sh --force` (what `/hindsight:distill` runs) ignores it and distills whatever is pending. |
 | `HINDSIGHT_DISTILL_MODEL` | `sonnet` | Model for the distill pass. |
 | `HINDSIGHT_DISTILL_BUDGET` | `5.00` | Max USD per project's claude pass (sessions are batched by project, one pass each). `distill.sh --no-budget` removes the cap for one run. |
 | `HINDSIGHT_DISTILL_STALE_MIN` | `30` | Skip sessions touched within this many minutes (still active). |
