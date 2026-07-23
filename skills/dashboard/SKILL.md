@@ -1,6 +1,7 @@
 ---
 name: dashboard
 description: Rebuild the hindsight HTML dashboard from the vault (sessions, distill runs, knowledge, proposals) and open it in the browser. Pure shell, no LLM cost.
+disable-model-invocation: true
 ---
 
 # hindsight dashboard

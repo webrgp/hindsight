@@ -1,6 +1,7 @@
 ---
 name: distill
 description: Run a hindsight distill pass right now instead of waiting for the nightly schedule. Thins undistilled session transcripts and folds them into the knowledge vault.
+disable-model-invocation: true
 ---
 
 # hindsight distill (run now)

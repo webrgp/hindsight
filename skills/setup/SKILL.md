@@ -1,6 +1,7 @@
 ---
 name: setup
 description: One-time hindsight setup — scaffold the vault at ~/.hindsight (or $HINDSIGHT_HOME), install the nightly launchd distill job, optionally git-init the vault. Run once after installing the plugin; re-run any time to change the distill schedule. macOS only.
+disable-model-invocation: true
 ---
 
 # hindsight setup

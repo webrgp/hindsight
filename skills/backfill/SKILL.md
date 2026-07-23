@@ -1,6 +1,7 @@
 ---
 name: backfill
 description: Capture old, pre-plugin Claude Code sessions from ~/.claude/projects transcripts into the hindsight vault, then distill them into knowledge. Use when hindsight was just installed and history should not be lost.
+disable-model-invocation: true
 ---
 
 # hindsight backfill

@@ -1,6 +1,7 @@
 ---
 name: proposals
 description: Review hindsight's pending skill/automation proposals and approve, reject, or defer each. Approval scaffolds a real SKILL.md at the proposed scope (project or global). This is the human gate that closes the self-improvement loop.
+disable-model-invocation: true
 ---
 
 # hindsight proposals

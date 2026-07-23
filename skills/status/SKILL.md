@@ -1,6 +1,7 @@
 ---
 name: status
 description: Show hindsight health — undistilled session queue, last distill runs, knowledge note counts per scope, and pending proposals. Read-only.
+disable-model-invocation: true
 ---
 
 # hindsight status
