@@ -115,7 +115,7 @@ while read -r proj; do
   log "project $proj: $pcount session(s)"
 
   rm -rf "$SCRATCH"; mkdir -p "$SCRATCH"
-  while IFS=$'\t' read -r f upd out p; do
+  while IFS=$'\t' read -r f upd out _; do
     cp "$out" "$SCRATCH/$(basename "$out")"
   done < "$PSNAP"
 
@@ -180,7 +180,7 @@ while read -r proj; do
   # perl, not sed: byte-safe against emoji/UTF-8 in dumps (BSD sed chokes).
   DONE="$SCRATCH/.done"
   NOW=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
-  while IFS=$'\t' read -r f upd out p; do
+  while IFS=$'\t' read -r f upd out _; do
     if [ "$rc" -ne 0 ]; then
       grep -qxF "$(basename "$out")" "$DONE" 2>/dev/null || continue
     fi
