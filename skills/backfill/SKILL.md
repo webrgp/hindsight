@@ -9,7 +9,7 @@ Pull sessions that predate the plugin into the vault, then distill them.
 
 1. **Ask how far back** (AskUserQuestion): last 30 days (default), last 90, or all
    history. Warn on "all": one distill run costs up to `HINDSIGHT_DISTILL_BUDGET`
-   (default $1.50) per batch of `HINDSIGHT_DISTILL_MAX_SESSIONS` (default 20)
+   (default $5.00) per batch of `HINDSIGHT_DISTILL_MAX_SESSIONS` (default 20)
    sessions, so a big history takes several runs or several nights.
 
 2. **Run the backfill** (pass days as the argument; 0 = all):

@@ -14,11 +14,21 @@ LOCK="$HINDSIGHT_HOME/.distill.lock"
 LOG="$HINDSIGHT_HOME/logs/distill.log"
 THRESHOLD="${HINDSIGHT_DISTILL_THRESHOLD:-1}"
 MODEL="${HINDSIGHT_DISTILL_MODEL:-sonnet}"
-BUDGET="${HINDSIGHT_DISTILL_BUDGET:-1.50}"
+BUDGET="${HINDSIGHT_DISTILL_BUDGET:-5.00}"
 STALE="${HINDSIGHT_DISTILL_STALE_MIN:-30}"
 
+# --no-budget: run the claude pass with no spend cap (manual backfill drains).
+[ "${1:-}" = "--no-budget" ] && BUDGET=""
+
 mkdir -p "$HINDSIGHT_HOME/logs" "$SESSIONS"
-log(){ printf '%s %s\n' "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" "$*" >> "$LOG"; }
+# Log lines always land in $LOG; when run from a terminal they also echo to
+# stderr so a manual run shows progress live (launchd runs stay quiet).
+log(){
+  line="$(date -u '+%Y-%m-%dT%H:%M:%SZ') $*"
+  printf '%s\n' "$line" >> "$LOG"
+  [ -t 2 ] && printf '%s\n' "$line" >&2
+  return 0
+}
 
 # Single-run lock (mkdir is atomic). A lock older than 6h means a run died
 # hard (SIGKILL, power loss) and the EXIT trap never fired — reclaim it so one
@@ -27,7 +37,7 @@ if [ -n "$(find "$LOCK" -maxdepth 0 -mmin +360 2>/dev/null)" ]; then
   log "warn: reclaiming stale lock"; rm -rf "$LOCK"
 fi
 if ! mkdir "$LOCK" 2>/dev/null; then log "skip: locked"; exit 0; fi
-trap 'rm -rf "$LOCK" "$SCRATCH"' EXIT
+trap 'rm -rf "$LOCK" "$SCRATCH"; kill "${TAILPID:-}" 2>/dev/null; pkill -P $$ -x tail 2>/dev/null' EXIT
 trap 'exit 1' HUP INT TERM   # untrapped signals skip the EXIT trap; route them through it
 
 export HINDSIGHT_DISTILL=1   # stops the capture hook logging our own claude run
@@ -73,6 +83,7 @@ while read -r f; do
   upd=$(grep -m1 '^updated:' "$f" | sed 's/^updated: //')
   short=$(printf '%s' "$sid" | head -c 8)
   out="$SCRATCH/${proj}__${short}.md"
+  log "thin: ${proj}__${short}"
   {
     echo "# session: $sid"
     echo "# project: $proj"
@@ -83,17 +94,43 @@ while read -r f; do
 done < "$TODO"
 
 # Run the distill agent headless. Restrict tools; auto-accept edits; cap spend.
+# stream-json instead of json so an interactive run can watch the agent work:
+# a background tail follows the event stream and prints each tool call to
+# stderr. The final "result" event carries the same cost/duration fields the
+# old json mode returned.
 PROMPT=$(cat "$HERE/distill-prompt.md")
 RESULT="$SCRATCH/.result.json"
+STREAM="$SCRATCH/.stream.jsonl"
 cd "$HINDSIGHT_HOME" || { log "no vault at $HINDSIGHT_HOME"; exit 1; }
+log "claude pass: model=$MODEL budget=${BUDGET:-unlimited} — may take several minutes"
+: > "$STREAM"
+TAILPID=""
+if [ -t 2 ]; then
+  tail -f "$STREAM" 2>/dev/null | jq --unbuffered -r '
+    if .type=="assistant" then
+      (.message.content[]? | select(.type=="tool_use")
+       | "  agent: \(.name) \(.input.file_path // .input.pattern // "")")
+    elif .type=="result" then
+      "  agent: finished — \(.num_turns) turns, $\(.total_cost_usd)"
+    else empty end' >&2 &
+  TAILPID=$!
+fi
 claude -p "$PROMPT" </dev/null \
     --model "$MODEL" \
     --permission-mode acceptEdits \
     --allowedTools "Read Write Edit Glob Grep" \
     --add-dir "$HINDSIGHT_HOME" \
-    --max-budget-usd "$BUDGET" \
-    --output-format json >"$RESULT" 2>>"$LOG"
+    ${BUDGET:+--max-budget-usd "$BUDGET"} \
+    --output-format stream-json --verbose >"$STREAM" 2>>"$LOG"
 rc=$?
+# Kill both halves of the tail|jq pipeline; never `wait` on it — bash waits
+# the whole job and tail -f never exits, which deadlocks the script.
+if [ -n "$TAILPID" ]; then
+  sleep 1                          # let the printer flush the final line
+  kill "$TAILPID" 2>/dev/null      # the jq printer ($! is the pipeline's last process)
+  pkill -P $$ -x tail 2>/dev/null  # its tail -f feeder
+fi
+jq -c 'select(.type=="result")' "$STREAM" 2>/dev/null | tail -n 1 > "$RESULT"
 cat "$RESULT" >> "$LOG" 2>/dev/null
 
 # One structured line per run (the dashboard reads this; the prose log is for humans).
@@ -104,7 +141,7 @@ printf '{"date":"%s","sessions":%s,"cost":%s,"duration_ms":%s,"ok":%s}\n' \
   "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" "$COUNT" "$cost" "$dur" "$ok" >> "$HINDSIGHT_HOME/logs/runs.jsonl"
 
 if [ "$rc" -eq 0 ]; then
-  log "distill ok"
+  log "distill ok (cost=\$$cost, $((dur/1000))s)"
 else
   log "distill FAILED (rc=$rc); marking only checkpointed sessions"
 fi
