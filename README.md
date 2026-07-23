@@ -4,11 +4,21 @@ A self-improving layer for Claude Code, packaged as a plugin: it learns from you
 sessions, retains knowledge in a vault, and proposes skills/automations from
 recurring patterns.
 
-```
-capture (Stop hook) ──▶ ~/.hindsight/sessions ──▶ distill (nightly) ──▶ knowledge/
-                                                            │
-        inject (SessionStart hook) ◀───────────────────────┘
-                                                            └──▶ inbox/proposals.md ──▶ /hindsight:proposals ──▶ skills
+```mermaid
+flowchart LR
+  S(["Claude Code session"])
+  SD["~/.hindsight/sessions"]
+  K["~/.hindsight/knowledge"]
+  P["inbox/proposals.md"]
+  G["/hindsight:proposals"]
+  SK["skills/"]
+
+  S -->|"capture · Stop hook"| SD
+  SD -->|"distill · nightly"| K
+  SD -->|"distill · nightly"| P
+  K -->|"inject · SessionStart hook"| S
+  P --> G -->|approve| SK
+  SK -.->|available next run| S
 ```
 
 Inspired by [recall](https://github.com/maxdmyers/recall) and, upstream of that,
