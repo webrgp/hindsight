@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>hindsight</title>
+<style>
+  :root {
+    color-scheme: light;
+    --page:           #f9f9f7;
+    --surface-1:      #fcfcfb;
+    --text-primary:   #0b0b0b;
+    --text-secondary: #52514e;
+    --text-muted:     #898781;
+    --grid:           #e1e0d9;
+    --baseline:       #c3c2b7;
+    --border:         rgba(11,11,11,0.10);
+    --series-1:       #2a78d6;
+    --status-good:    #0ca30c;
+    --status-critical:#d03b3b;
+    --good-text:      #006300;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --page:           #0d0d0d;
+      --surface-1:      #1a1a19;
+      --text-primary:   #ffffff;
+      --text-secondary: #c3c2b7;
+      --text-muted:     #898781;
+      --grid:           #2c2c2a;
+      --baseline:       #383835;
+      --border:         rgba(255,255,255,0.10);
+      --series-1:       #3987e5;
+      --good-text:      #0ca30c;
+    }
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body {
+    background: var(--page);
+    color: var(--text-primary);
+    font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+    padding: 24px;
+    max-width: 1000px;
+    margin: 0 auto;
+  }
+  header { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 20px; }
+  header h1 { font-size: 18px; font-weight: 600; }
+  header .stamp { color: var(--text-muted); font-size: 12px; }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 20px; }
+  .tile { background: var(--surface-1); border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px; }
+  .tile .label { color: var(--text-secondary); font-size: 12px; }
+  .tile .value { font-size: 28px; font-weight: 600; margin-top: 2px; }
+  .card { background: var(--surface-1); border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-bottom: 20px; overflow-x: auto; }
+  .card h2 { font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 12px; }
+  svg text { fill: var(--text-muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+  table { border-collapse: collapse; width: 100%; font-size: 13px; }
+  th { text-align: left; color: var(--text-muted); font-weight: 500; font-size: 12px; padding: 4px 12px 4px 0; border-bottom: 1px solid var(--grid); }
+  td { padding: 5px 12px 5px 0; border-bottom: 1px solid var(--grid); }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  tr:last-child td { border-bottom: none; }
+  .ok   { color: var(--good-text); }
+  .fail { color: var(--status-critical); }
+  details { margin-top: 8px; }
+  summary { color: var(--text-muted); font-size: 12px; cursor: pointer; }
+  .empty { color: var(--text-muted); }
+  #tip {
+    position: fixed; display: none; pointer-events: none; z-index: 10;
+    background: var(--surface-1); border: 1px solid var(--border); border-radius: 6px;
+    padding: 5px 9px; font-size: 12px; color: var(--text-primary);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.12); white-space: nowrap;
+  }
+  .scope { color: var(--text-muted); }
+</style>
+</head>
+<body>
+<div id="tip"></div>
+<header>
+  <h1>hindsight</h1>
+  <span class="stamp" id="stamp"></span>
+</header>
+
+<div class="tiles" id="tiles"></div>
+
+<div class="card">
+  <h2>Sessions captured — last 30 days</h2>
+  <div id="chart-days"></div>
+  <details><summary>View as table</summary><div id="table-days"></div></details>
+</div>
+
+<div class="card">
+  <h2>Distill cost per run</h2>
+  <div id="chart-cost"></div>
+  <details><summary>View as table</summary><div id="table-runs"></div></details>
+</div>
+
+<div class="card">
+  <h2>Knowledge — recent notes</h2>
+  <div id="table-notes"></div>
+</div>
+
+<div class="card">
+  <h2>Proposals</h2>
+  <div id="table-proposals"></div>
+</div>
+
+<script>
+const DATA =
+__DATA__
+;
+
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fmtDay = iso => new Date(iso + 'T00:00:00').toLocaleDateString(undefined, {month:'short', day:'numeric'});
+const fmtUsd = n => '$' + Number(n).toFixed(2);
+
+document.getElementById('stamp').textContent = 'generated ' + new Date(DATA.generated_at).toLocaleString();
+
+/* ---- stat tiles ---- */
+const tiles = [
+  ['Sessions captured', DATA.sessions.total],
+  ['Undistilled queue', DATA.sessions.undistilled],
+  ['Knowledge notes', DATA.knowledge.global + DATA.knowledge.projects.reduce((a,p)=>a+p.notes,0)],
+  ['Pending proposals', DATA.proposals.proposed],
+  ['Total distill spend', fmtUsd(DATA.runs.reduce((a,r)=>a+r.cost,0))],
+];
+document.getElementById('tiles').innerHTML = tiles.map(([l,v]) =>
+  `<div class="tile"><div class="label">${esc(l)}</div><div class="value">${esc(v)}</div></div>`).join('');
+
+/* ---- tooltip ---- */
+const tip = document.getElementById('tip');
+function hover(el, html) {
+  el.addEventListener('mousemove', e => {
+    tip.innerHTML = html; tip.style.display = 'block';
+    tip.style.left = (e.clientX + 12) + 'px'; tip.style.top = (e.clientY - 30) + 'px';
+  });
+  el.addEventListener('mouseleave', () => tip.style.display = 'none');
+}
+
+/* ---- column chart: single series, ≤24px bars, 4px rounded data-end,
+       square baseline, 2px surface gap, hairline grid, clean y ticks ---- */
+function columns(mount, points, valueFmt, tipFmt, integer) {
+  const el = document.getElementById(mount);
+  if (!points.length || points.every(p => !p.v)) { el.innerHTML = '<p class="empty">(no data yet)</p>'; return; }
+  const W = Math.min(940, Math.max(320, el.clientWidth || 940)), H = 160;
+  const padL = 36, padB = 20, padT = 8;
+  const plotW = W - padL - 8, plotH = H - padT - padB;
+  const max = Math.max(...points.map(p => p.v));
+  // clean tick ceiling — integer data gets an even integer top so the midpoint
+  // tick is never fractional; continuous data gets 1/2/5 × 10^k
+  let top;
+  if (integer) top = Math.max(2, Math.ceil(max/2)*2);
+  else {
+    const pow = Math.pow(10, Math.floor(Math.log10(max || 1)));
+    top = [1,2,5,10].map(m => m*pow).find(t => t >= max);
+  }
+  const slot = plotW / points.length;
+  const bw = Math.min(24, Math.max(3, slot - 2));   // 2px surface gap between bars
+  const y = v => padT + plotH * (1 - v/top);
+  let s = `<svg width="${W}" height="${H}" role="img">`;
+  [0.5, 1].forEach(f => {
+    const gy = y(top*f);
+    s += `<line x1="${padL}" y1="${gy}" x2="${W-8}" y2="${gy}" stroke="var(--grid)" stroke-width="1"/>`;
+    s += `<text x="${padL-6}" y="${gy+4}" text-anchor="end">${valueFmt(top*f)}</text>`;
+  });
+  s += `<line x1="${padL}" y1="${y(0)}" x2="${W-8}" y2="${y(0)}" stroke="var(--baseline)" stroke-width="1"/>`;
+  points.forEach((p, i) => {
+    const x = padL + i*slot + (slot-bw)/2, ty = y(p.v), base = y(0);
+    if (p.v > 0) {
+      const r = Math.min(4, bw/2, (base-ty));
+      s += `<path class="bar" data-i="${i}" fill="var(--series-1)" d="M${x},${base} L${x},${ty+r} Q${x},${ty} ${x+r},${ty} L${x+bw-r},${ty} Q${x+bw},${ty} ${x+bw},${ty+r} L${x+bw},${base} Z"/>`;
+    }
+    // full-height transparent hit target: bigger than the mark
+    s += `<rect class="hit" data-i="${i}" x="${padL+i*slot}" y="${padT}" width="${slot}" height="${plotH}" fill="transparent"/>`;
+    if (points.length <= 31 && (i % Math.ceil(points.length/6) === 0))
+      s += `<text x="${x+bw/2}" y="${H-4}" text-anchor="middle">${esc(p.label)}</text>`;
+  });
+  s += '</svg>';
+  el.innerHTML = s;
+  el.querySelectorAll('.hit').forEach(h => hover(h, tipFmt(points[+h.dataset.i])));
+}
+
+/* sessions per day: fill gaps so quiet days read as zero, not missing */
+const byDay = Object.fromEntries(DATA.sessions.by_day.map(d => [d.date, d.count]));
+const days = [];
+const end = new Date(DATA.generated_at);
+for (let i = 29; i >= 0; i--) {
+  const d = new Date(end); d.setDate(d.getDate() - i);
+  const iso = d.toISOString().slice(0,10);
+  days.push({ label: fmtDay(iso), v: byDay[iso] || 0, date: iso });
+}
+columns('chart-days', days, v => v, p => `${fmtDay(p.date)} — ${p.v} session${p.v===1?'':'s'}`, true);
+document.getElementById('table-days').innerHTML =
+  '<table><tr><th>Date</th><th class="num">Sessions</th></tr>' +
+  days.filter(d => d.v).map(d => `<tr><td>${fmtDay(d.date)}</td><td class="num">${d.v}</td></tr>`).join('') +
+  '</table>';
+
+/* cost per run */
+const runs = DATA.runs.slice(-20);
+columns('chart-cost', runs.map(r => ({ label: fmtDay(r.date.slice(0,10)), v: r.cost, run: r })),
+  v => fmtUsd(v), p => `${fmtDay(p.run.date.slice(0,10))} — ${fmtUsd(p.v)}, ${p.run.sessions} session${p.run.sessions===1?'':'s'}, ${p.run.ok ? 'ok' : 'failed'}`);
+document.getElementById('table-runs').innerHTML = runs.length ?
+  '<table><tr><th>Date</th><th class="num">Sessions</th><th class="num">Cost</th><th class="num">Duration</th><th>Status</th></tr>' +
+  runs.slice().reverse().map(r =>
+    `<tr><td>${esc(r.date.slice(0,10))}</td><td class="num">${r.sessions}</td><td class="num">${fmtUsd(r.cost)}</td><td class="num">${Math.round(r.duration_ms/1000)}s</td>` +
+    `<td class="${r.ok?'ok':'fail'}">${r.ok ? '✓ ok' : '✗ failed'}</td></tr>`).join('') +
+  '</table>' : '<p class="empty">(no runs yet)</p>';
+
+/* knowledge notes */
+document.getElementById('table-notes').innerHTML = DATA.knowledge.recent.length ?
+  '<table><tr><th>Note</th><th>Scope</th><th>Updated</th></tr>' +
+  DATA.knowledge.recent.map(n =>
+    `<tr><td>${esc(n.name)}</td><td class="scope">${esc(n.scope)}</td><td>${esc(n.updated)}</td></tr>`).join('') +
+  '</table>' : '<p class="empty">(no notes yet — distill will populate as sessions accumulate)</p>';
+
+/* proposals */
+const pr = DATA.proposals;
+document.getElementById('table-proposals').innerHTML =
+  `<p style="margin-bottom:8px">${pr.proposed} pending · ${pr.implemented} implemented · ${pr.rejected} rejected</p>` +
+  (pr.pending.length ?
+    '<table><tr><th>Pattern</th><th>Seen</th><th>Scope</th></tr>' +
+    pr.pending.map(p => `<tr><td>${esc(p.name)}</td><td>${esc(p.seen)}</td><td class="scope">${esc(p.scope)}</td></tr>`).join('') +
+    '</table>'
+    : '<p class="empty">(nothing pending — approve via /hindsight:proposals when distill finds patterns)</p>');
+</script>
+</body>
+</html>
